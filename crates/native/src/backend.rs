@@ -534,8 +534,11 @@ impl NativeBackend {
                 let removal = match &existing {
                     _ if cli_cleanup => Ok(()),
                     Some(inst) => install::uninstall(app, inst, record.as_ref(), &paths, &stop, &mut phase),
-                    None if record.is_some() || shared.manifest.lock().unwrap_or_else(PoisonError::into_inner).cli.contains_key(app.id) => Ok(()),
-                    None => Err(format!("{} isn't installed", app.name)),
+                    None => match record.as_ref() {
+                        Some(record) => recorded_app_is_absent(app, record),
+                        None if shared.manifest.lock().unwrap_or_else(PoisonError::into_inner).cli.contains_key(app.id) => Ok(()),
+                        None => Err(format!("{} isn't installed", app.name)),
+                    },
                 };
                 removal.and_then(|()| {
                     let mut m = shared.manifest.lock().unwrap_or_else(PoisonError::into_inner);
@@ -1067,6 +1070,19 @@ fn save_cli_record(manifest: &mut Manifest, path: &std::path::Path, app: &str, r
     Ok(())
 }
 
+/// Failed detection is not proof of absence: keep an unreadable or unidentified installation retryable.
+fn recorded_app_is_absent(app: &CraftApp, record: &crate::manifest::Record) -> Result<(), String> {
+    match std::fs::symlink_metadata(&record.path) {
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(format!("Couldn't inspect {} ({error}); its removal record was kept for retry.", record.path.display())),
+        Ok(_) => Err(format!(
+            "{} is still present but couldn't be identified as {}; it was left alone and its removal record was kept for retry.",
+            record.path.display(),
+            app.name,
+        )),
+    }
+}
+
 /// Removes the command-line tool the launcher installed for `id`, and its record. Whether the
 /// manifest changed. A tool that can't be removed keeps its record, so a later removal can try again.
 #[cfg_attr(not(unix), allow(unused_variables))]
@@ -1285,7 +1301,7 @@ fn report_partial(app: &CraftApp, shared: &Shared, paths: &Paths, platform: Opti
         report_installable(app, shared, platform);
         let planned = planned_download(app, shared, paths, platform, &options);
         let download = planned.as_ref().and_then(|(dest, _, size)| Some(PausedDownload { done: http::partial_bytes(dest, *size)?, total: *size }));
-        let ready = planned.as_ref().is_some_and(|(dest, _, size)| http::finished(dest, *size));
+        let ready = planned.as_ref().is_some_and(|(dest, _, size)| http::finished_bytes(dest, *size).is_some());
         let cli_download = kept_cli_download(app, shared, paths, platform, &options).map(|(_, download)| download);
         if shared.report_download(app.id, revision, planned.as_ref().map(|(_, kind, size)| (*kind, *size)), download, ready, cli_download) {
             return;
@@ -1313,7 +1329,7 @@ fn kept_cli_download(
         return None;
     }
     let dest = install::download_path(paths, asset);
-    let done = http::partial_bytes(&dest, asset.size).or_else(|| http::finished(&dest, asset.size).then_some(asset.size))?;
+    let done = http::partial_bytes(&dest, asset.size).or_else(|| http::finished_bytes(&dest, asset.size))?;
     Some((dest, PausedDownload { done, total: asset.size }))
 }
 
@@ -2222,6 +2238,98 @@ mod tests {
         assert!(events.iter().any(|event| matches!(event, Event::AppManaged { app, managed: false } if app == APP)));
         assert!(!backend.shared.manifest.lock().unwrap().apps.contains_key(APP));
         assert!(!Manifest::load(&manifest_path).apps.contains_key(APP));
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn undetected_recorded_bundles_are_retained_unless_the_recorded_path_is_really_absent() {
+        use std::os::unix::fs::PermissionsExt;
+
+        for issue in ["missing", "malformed", "unreadable plist", "inaccessible parent"] {
+            let dir = tempfile::tempdir().unwrap();
+            let mut backend = backend(dir.path(), Platform { os: Os::MacOs, arch: Arch::Arm64 }, None);
+            let app = CraftApp::by_id(APP).unwrap();
+            let parent = dir.path().join("apps");
+            let bundle = parent.join("PhotoCraft.app");
+            let info = bundle.join("Contents/Info.plist");
+            if issue != "missing" {
+                std::fs::create_dir_all(info.parent().unwrap()).unwrap();
+                if issue == "malformed" {
+                    std::fs::write(&info, b"not a property list").unwrap();
+                } else {
+                    let xml = format!(
+                        "<?xml version=\"1.0\"?><plist version=\"1.0\"><dict><key>CFBundleIdentifier</key><string>{}</string><key>CFBundleShortVersionString</key><string>0.5.0</string></dict></plist>",
+                        app.bundle_id()
+                    );
+                    std::fs::write(&info, xml).unwrap();
+                    assert!(crate::detect::macos::read_bundle(app, &bundle).is_some());
+                    if issue == "unreadable plist" {
+                        std::fs::set_permissions(&info, std::fs::Permissions::from_mode(0o000)).unwrap();
+                    } else {
+                        std::fs::set_permissions(&parent, std::fs::Permissions::from_mode(0o000)).unwrap();
+                    }
+                }
+            }
+            assert!(crate::detect::macos::read_bundle(app, &bundle).is_none());
+            let record = crate::manifest::Record {
+                version: "0.5.0".into(),
+                kind: PackageKind::Dmg,
+                path: bundle.clone(),
+                installed_at: 1,
+                files: vec![],
+                needs_root: false,
+            };
+            let cli = crate::manifest::CliRecord {
+                version: "0.5.0".into(),
+                folder: backend.paths.cli().join(APP),
+                link: backend.paths.cli_bin().join(format!("{APP}-cli")),
+                installed_at: 1,
+            };
+            std::fs::create_dir_all(&cli.folder).unwrap();
+            std::fs::create_dir_all(backend.paths.cli_bin()).unwrap();
+            std::fs::write(cli.folder.join(format!("{APP}-cli")), b"CLI").unwrap();
+            std::os::unix::fs::symlink(cli.folder.join(format!("{APP}-cli")), &cli.link).unwrap();
+            {
+                let mut manifest = backend.shared.manifest.lock().unwrap();
+                manifest.apps.insert(APP.into(), record.clone());
+                manifest.cli.insert(APP.into(), cli.clone());
+                manifest.save(&backend.paths.manifest()).unwrap();
+            }
+            let before = Manifest::load(&backend.paths.manifest());
+            backend.send(Command::Uninstall { app: APP.into() });
+            wait_until(|| backend.shared.events.lock().unwrap().iter().any(|event| matches!(event, Event::JobFinished { app, .. } if app == APP)));
+            if issue == "inaccessible parent" {
+                std::fs::set_permissions(&parent, std::fs::Permissions::from_mode(0o700)).unwrap();
+            }
+            if issue == "unreadable plist" {
+                std::fs::set_permissions(&info, std::fs::Permissions::from_mode(0o600)).unwrap();
+            }
+            let events = backend.poll();
+            if issue != "missing" {
+                assert!(
+                    events.iter().any(|event| matches!(event, Event::JobFinished { app, result: Err(error) }
+                    if app == APP && error.contains("removal record was kept for retry"))),
+                    "{issue}: {events:?}"
+                );
+                assert_eq!(backend.shared.manifest.lock().unwrap().clone(), before);
+                assert_eq!(Manifest::load(&backend.paths.manifest()), before);
+                assert!(info.exists(), "the unidentified bundle must remain untouched");
+                assert_eq!(std::fs::read(cli.folder.join(format!("{APP}-cli"))).unwrap(), b"CLI");
+                assert!(events.iter().any(|event| matches!(event, Event::AppManaged { app, managed: true } if app == APP)));
+                std::fs::remove_dir_all(&bundle).unwrap();
+                backend.shared.installed.lock().unwrap().remove(APP);
+                backend.send(Command::Uninstall { app: APP.into() });
+                wait_until(|| {
+                    backend.shared.events.lock().unwrap().iter().any(|event| matches!(event, Event::JobFinished { app, .. } if app == APP))
+                });
+                assert!(backend.poll().iter().any(|event| matches!(event, Event::JobFinished { app, result: Ok(_) } if app == APP)));
+            } else {
+                assert!(events.iter().any(|event| matches!(event, Event::JobFinished { app, result: Ok(_) } if app == APP)));
+            }
+            assert!(!backend.shared.manifest.lock().unwrap().apps.contains_key(APP));
+            assert!(!Manifest::load(&backend.paths.manifest()).apps.contains_key(APP));
+            assert!(!cli.folder.exists());
+        }
     }
 
     #[test]
@@ -3236,6 +3344,39 @@ mod tests {
         backend.poll();
         assert!(!backend.shared.report_download(APP, revision, None, None, false, Some(PausedDownload { done: 1, total: size })));
         assert!(!backend.poll().iter().any(|event| matches!(event, Event::CliPaused { app, .. } if app == APP)));
+    }
+
+    #[test]
+    fn unknown_size_release_page_caches_offer_cli_and_gui_recovery_with_exact_discard_targets() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut backend = backend(dir.path(), Platform { os: Os::MacOs, arch: Arch::Arm64 }, None);
+        let cli_name = format!("{APP}-cli-0.5.0-macos-universal.zip");
+        let gui_name = format!("{APP}-0.5.0-macos-universal.dmg");
+        let sums = [("0".repeat(64), cli_name.clone()), ("0".repeat(64), gui_name.clone())];
+        let release = artcraft_launcher_core::release::release_from_sums(&format!("storytold/{APP}"), "v0.5.0", &sums);
+        assert!(release.assets.iter().all(|asset| asset.size == 0));
+        backend.shared.latest.lock().unwrap().insert(APP.into(), release);
+        backend.shared.installed.lock().unwrap().insert(APP.into(), copy_of("0.5.0", InstallSource::MacApp, "/Applications/PhotoCraft.app"));
+        backend.shared.options.lock().unwrap().cli_apps.insert(APP.into());
+        let cli = backend.paths.downloads().join(cli_name);
+        let gui = backend.paths.downloads().join(gui_name);
+        std::fs::create_dir_all(backend.paths.downloads()).unwrap();
+        std::fs::write(&cli, b"tool").unwrap();
+        std::fs::write(&gui, b"app").unwrap();
+        report_partial(CraftApp::by_id(APP).unwrap(), &backend.shared, &backend.paths, backend.platform);
+        let events = backend.poll();
+        assert!(events.iter().any(|event| matches!(event, Event::CliPaused { app, download: Some(download) }
+            if app == APP && *download == PausedDownload { done: 4, total: 0 })));
+        assert_eq!(last_ready(events), Some(true));
+        backend.send(Command::DiscardCli { app: APP.into() });
+        let events = wait_for_app_download_report(&mut backend);
+        assert!(events.iter().any(|event| matches!(event, Event::CliPaused { app, download: None } if app == APP)));
+        assert_eq!(last_ready(events), Some(true));
+        assert!(!cli.exists());
+        assert_eq!(std::fs::read(&gui).unwrap(), b"app");
+        backend.send(Command::Cancel { app: APP.into() });
+        assert_eq!(last_ready(wait_for_app_download_report(&mut backend)), Some(false));
+        assert!(!gui.exists());
     }
 
     /// Puts the planned download on disk, as a failed install leaves it.
