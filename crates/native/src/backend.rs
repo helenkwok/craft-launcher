@@ -349,6 +349,36 @@ impl NativeBackend {
         });
     }
 
+    /// Resolve and discard cached downloads off the UI thread: selecting a GUI package can probe the host.
+    fn discard_download(&self, app: &'static CraftApp, cli_only: bool) {
+        let revision = self.shared.download_revision(app.id);
+        let options = self.options();
+        let shared = self.shared.clone();
+        let paths = self.paths.clone();
+        let platform = self.platform;
+        std::thread::spawn(move || {
+            let download = if cli_only {
+                kept_cli_download(app, &shared, &paths, platform, &options).map(|(dest, download)| (dest, download.total))
+            } else {
+                planned_download(app, &shared, &paths, platform, &options).map(|(dest, _, size)| (dest, size))
+            };
+            {
+                // Planning may probe for seconds; freeze the plan and job starts only for deletion.
+                let _reporting = shared.reporting.lock().unwrap_or_else(PoisonError::into_inner);
+                let current_options = shared.options.lock().unwrap_or_else(PoisonError::into_inner);
+                let running = shared.jobs.lock().unwrap_or_else(PoisonError::into_inner);
+                if *current_options == options
+                    && !running.contains_key(app.id)
+                    && shared.download_revision(app.id) == revision
+                    && let Some((dest, size)) = download
+                {
+                    http::discard(&dest, size);
+                }
+            }
+            report_partial(app, &shared, &paths, platform);
+        });
+    }
+
     fn options(&self) -> BackendOptions {
         self.shared.options.lock().unwrap_or_else(PoisonError::into_inner).clone()
     }
@@ -1729,26 +1759,17 @@ impl Backend for NativeBackend {
                     // A paused download, or one kept after a failed install: throw the file away.
                     None => {
                         if let Some(def) = CraftApp::by_id(&app) {
-                            let options = self.options();
-                            if let Some((dest, _, size)) = planned_download(def, &self.shared, &self.paths, self.platform, &options) {
-                                http::discard(&dest, size);
-                            }
-                            report_partial(def, &self.shared, &self.paths, self.platform);
+                            self.discard_download(def, false);
                         }
                     }
                 }
             }
             Command::DiscardCli { app } => {
                 let Some(def) = CraftApp::by_id(&app) else { return };
-                let running = self.shared.jobs.lock().unwrap_or_else(PoisonError::into_inner);
-                if running.contains_key(&app) {
+                if self.shared.jobs.lock().unwrap_or_else(PoisonError::into_inner).contains_key(&app) {
                     return;
                 }
-                if let Some((dest, download)) = kept_cli_download(def, &self.shared, &self.paths, self.platform, &self.options()) {
-                    http::discard(&dest, download.total);
-                }
-                drop(running);
-                report_partial(def, &self.shared, &self.paths, self.platform);
+                self.discard_download(def, true);
             }
             Command::Launch { app, args } => {
                 let Some(def) = CraftApp::by_id(&app) else { return };
@@ -2831,6 +2852,15 @@ mod tests {
         })
     }
 
+    fn wait_for_app_download_report(backend: &mut NativeBackend) -> Vec<Event> {
+        let mut events = Vec::new();
+        wait_until(|| {
+            events.extend(backend.poll());
+            events.iter().any(|event| matches!(event, Event::ReadyToInstall { app, .. } if app == APP))
+        });
+        events
+    }
+
     fn wait_until(mut ready: impl FnMut() -> bool) {
         let deadline = Instant::now() + Duration::from_secs(2);
         while !ready() {
@@ -2917,6 +2947,89 @@ mod tests {
     }
 
     #[test]
+    fn discarding_downloads_does_not_wait_for_planning_on_the_calling_thread() {
+        for command in [Command::Cancel { app: APP.into() }, Command::DiscardCli { app: APP.into() }] {
+            let dir = tempfile::tempdir().unwrap();
+            let mut backend = backend(dir.path(), Platform { os: Os::MacOs, arch: Arch::Arm64 }, None);
+            let shared = backend.shared.clone();
+            let planning = shared.planning.lock().unwrap();
+            let (sent, received) = mpsc::channel();
+            let worker = std::thread::spawn(move || {
+                backend.send(command);
+                assert!(sent.send(backend).is_ok());
+            });
+            // The report cannot run until this guard drops, but send must already have returned.
+            let returned = received.recv_timeout(Duration::from_secs(2));
+            drop(planning);
+            worker.join().unwrap();
+            let mut backend = returned.expect("discard blocked the calling thread on download planning");
+            let events = wait_for_app_download_report(&mut backend);
+            assert!(events.iter().any(|event| matches!(event, Event::Paused { app, download: None } if app == APP)));
+            assert!(events.iter().any(|event| matches!(event, Event::CliPaused { app, download: None } if app == APP)));
+            assert_eq!(last_ready(events), Some(false));
+        }
+    }
+
+    #[test]
+    fn discard_planning_returns_before_release_lookup_and_preserves_new_jobs_or_options() {
+        for new_job in [true, false] {
+            let dir = tempfile::tempdir().unwrap();
+            let mut backend = backend(dir.path(), Platform { os: Os::MacOs, arch: Arch::Arm64 }, None);
+            let dest = keep_file(&backend);
+            let shared = backend.shared.clone();
+            // Both GUI and CLI resolution need the release before reaching any platform probe.
+            let latest = shared.latest.lock().unwrap();
+            let (sent, received) = mpsc::channel();
+            let sender = std::thread::spawn(move || {
+                backend.send(Command::Cancel { app: APP.into() });
+                assert!(sent.send(backend).is_ok());
+            });
+            let returned = received.recv_timeout(Duration::from_secs(2));
+            let stop = Arc::new(Stop::default());
+            let mut could_claim_job = true;
+            if returned.is_ok() {
+                if new_job {
+                    // A regression holding jobs during the blocked lookup must fail without deadlocking the test.
+                    match shared.jobs.try_lock() {
+                        Ok(mut jobs) => {
+                            jobs.insert(APP.into(), stop.clone());
+                        }
+                        Err(_) => could_claim_job = false,
+                    }
+                } else {
+                    shared.options.lock().unwrap().prereleases = true;
+                    shared.invalidate_download_size(APP);
+                }
+            }
+            drop(latest);
+            sender.join().unwrap();
+            assert!(could_claim_job, "download planning held the job-start lock");
+            let mut backend = returned.expect("discard performed release/platform planning on the calling thread");
+            assert_eq!(last_ready(wait_for_app_download_report(&mut backend)), Some(true));
+            assert!(dest.exists(), "a delayed discard must not delete a new job's or changed plan's download");
+            assert!(stop.check().is_ok(), "discard must not cancel a new job");
+        }
+
+        // CLI-only discard has the same nonblocking resolution boundary and never falls back to the GUI.
+        let dir = tempfile::tempdir().unwrap();
+        let mut backend = backend(dir.path(), Platform { os: Os::MacOs, arch: Arch::Arm64 }, None);
+        let dest = keep_file(&backend);
+        let shared = backend.shared.clone();
+        let latest = shared.latest.lock().unwrap();
+        let (sent, received) = mpsc::channel();
+        let sender = std::thread::spawn(move || {
+            backend.send(Command::DiscardCli { app: APP.into() });
+            assert!(sent.send(backend).is_ok());
+        });
+        let returned = received.recv_timeout(Duration::from_secs(2));
+        drop(latest);
+        sender.join().unwrap();
+        let mut backend = returned.expect("CLI discard performed release planning on the calling thread");
+        assert_eq!(last_ready(wait_for_app_download_report(&mut backend)), Some(true));
+        assert!(dest.exists(), "CLI discard must not touch a GUI download");
+    }
+
+    #[test]
     fn paused_cli_download_is_recovered_from_disk_and_discard_preserves_gui_download() {
         use std::io::Write;
         use std::net::TcpListener;
@@ -2973,11 +3086,13 @@ mod tests {
         // A stale CLI control must not turn into a GUI discard after preferences or versions change.
         backend.shared.options.lock().unwrap().cli_apps.remove(APP);
         backend.send(Command::DiscardCli { app: APP.into() });
+        wait_for_app_download_report(&mut backend);
         assert_eq!(http::partial_bytes(&dest, size), Some(done));
         assert_eq!(std::fs::read(&gui_partial).unwrap(), b"g");
         backend.shared.options.lock().unwrap().cli_apps.insert(APP.into());
         let selected = backend.shared.latest.lock().unwrap().insert(APP.into(), stable("0.6.0")).unwrap();
         backend.send(Command::DiscardCli { app: APP.into() });
+        wait_for_app_download_report(&mut backend);
         assert_eq!(http::partial_bytes(&dest, size), Some(done));
         assert_eq!(std::fs::read(&gui_partial).unwrap(), b"g");
         backend.shared.latest.lock().unwrap().insert(APP.into(), selected);
@@ -2992,9 +3107,9 @@ mod tests {
         backend.shared.jobs.lock().unwrap().remove(APP);
 
         backend.send(Command::DiscardCli { app: APP.into() });
+        let events = wait_for_app_download_report(&mut backend);
         assert_eq!(http::partial_bytes(&dest, size), None);
         assert_eq!(std::fs::read(&gui_partial).unwrap(), b"g");
-        let events = backend.poll();
         assert!(events.iter().any(|event| matches!(event, Event::CliPaused { app, download: None } if app == APP)));
         assert!(events.iter().any(|event| matches!(event, Event::Paused { app, download: Some(_) } if app == APP)));
 
@@ -3004,6 +3119,7 @@ mod tests {
         assert!(backend.poll().iter().any(|event| matches!(event, Event::CliPaused { app, download: Some(download) }
             if app == APP && download.done == size && download.total == size)));
         backend.send(Command::DiscardCli { app: APP.into() });
+        wait_for_app_download_report(&mut backend);
         assert!(!dest.exists());
         assert!(gui_partial.exists());
 
@@ -3011,7 +3127,7 @@ mod tests {
         backend.shared.invalidate_download_size(APP);
         backend.poll();
         assert!(!backend.shared.report_download(APP, revision, None, None, false, Some(PausedDownload { done: 1, total: size })));
-        assert!(!backend.poll().iter().any(|event| matches!(event, Event::CliPaused { .. })));
+        assert!(!backend.poll().iter().any(|event| matches!(event, Event::CliPaused { app, .. } if app == APP)));
     }
 
     /// Puts the planned download on disk, as a failed install leaves it.
@@ -3183,8 +3299,8 @@ mod tests {
         assert_eq!(ready(&mut backend), Some(true));
 
         backend.send(Command::Cancel { app: APP.to_string() });
+        assert_eq!(last_ready(wait_for_app_download_report(&mut backend)), Some(false));
         assert!(!dest.exists());
-        assert_eq!(last_ready(backend.poll()), Some(false));
     }
 
     #[test]
