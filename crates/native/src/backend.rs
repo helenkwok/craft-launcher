@@ -228,6 +228,17 @@ impl Shared {
         self.installed.lock().unwrap_or_else(PoisonError::into_inner).contains_key(app.id)
     }
 
+    fn report_progress(&self, app: &str, phase: JobPhase, last_emit: &mut Option<Instant>, now: Instant) {
+        // Bound byte updates without delaying download boundaries or installer/reconnect phases.
+        if matches!(phase, JobPhase::Downloading { done, total } if done != total && done != 0)
+            && last_emit.is_some_and(|last| now.saturating_duration_since(last) < Duration::from_millis(50))
+        {
+            return;
+        }
+        *last_emit = Some(now);
+        self.emit(Event::Progress { app: app.to_string(), phase });
+    }
+
     fn emit(&self, event: Event) {
         self.emit_all([event]);
     }
@@ -623,15 +634,8 @@ impl NativeBackend {
         let (shared, paths, http) = (self.shared.clone(), self.paths.clone(), self.http.clone());
         std::thread::spawn(move || {
             let job = job;
-            let mut last_emit = Instant::now() - Duration::from_secs(1);
-            let mut phase = |p: JobPhase| {
-                if matches!(p, JobPhase::Downloading { done, total } if done != total && done != 0) && last_emit.elapsed() < Duration::from_millis(50)
-                {
-                    return;
-                }
-                last_emit = Instant::now();
-                shared.emit(Event::Progress { app: LAUNCHER_ID.to_string(), phase: p });
-            };
+            let mut last_emit = None;
+            let mut phase = |phase| shared.report_progress(LAUNCHER_ID, phase, &mut last_emit, Instant::now());
             let last = || {
                 let mut waiting = || shared.emit(Event::Progress { app: LAUNCHER_ID.to_string(), phase: JobPhase::Waiting });
                 claim_restart(&shared.jobs, &shared.restarting, &stop, RESTART_WAIT, &mut waiting)
@@ -875,15 +879,8 @@ fn run_install(
         }
     };
     let approved_path = occupied.as_deref().filter(|_| replace);
-    let mut last_emit = Instant::now() - Duration::from_secs(1);
-    let mut phase = |p: JobPhase| {
-        // Downloads report thousands of times; the UI needs ~20 a second.
-        if matches!(p, JobPhase::Downloading { done, total } if done != total && done != 0) && last_emit.elapsed() < Duration::from_millis(50) {
-            return;
-        }
-        last_emit = Instant::now();
-        shared.emit(Event::Progress { app: app.id.to_string(), phase: p });
-    };
+    let mut last_emit = None;
+    let mut phase = |phase| shared.report_progress(app.id, phase, &mut last_emit, Instant::now());
     let mut job = Job {
         http,
         paths,
@@ -942,7 +939,8 @@ fn run_cli_install(
     let existing = crate::detect::detect(app, &manifest, &crate::detect::Snapshot::take());
     let release = shared.latest.lock().unwrap_or_else(PoisonError::into_inner).get(app.id).cloned();
     let release = cli_install_release(app, release, existing.as_ref(), platform, options)?;
-    let mut phase = |phase| shared.emit(Event::Progress { app: app.id.to_string(), phase });
+    let mut last_emit = None;
+    let mut phase = |phase| shared.report_progress(app.id, phase, &mut last_emit, Instant::now());
     let mut job = Job {
         http: http.ok_or("secure connections aren't available on this system")?,
         paths,
@@ -2237,6 +2235,39 @@ mod tests {
             feed_ok_at: Mutex::new(None),
             feed_throttle: Mutex::new(FeedThrottle::new()),
             pictures_busy: Mutex::new(std::collections::HashSet::new()),
+        }
+    }
+
+    #[test]
+    fn download_progress_bounds_bursts_and_keeps_boundaries_and_other_phases_immediate() {
+        let shared = shared();
+        let start = Instant::now();
+        let mut last_emit = None;
+        let first = JobPhase::Downloading { done: 1, total: 10_000 };
+        shared.report_progress(APP, first, &mut last_emit, start);
+        for done in 2..1_000 {
+            shared.report_progress(APP, JobPhase::Downloading { done, total: 10_000 }, &mut last_emit, start + Duration::from_millis(1));
+        }
+        shared.report_progress(APP, JobPhase::Downloading { done: 1_000, total: 10_000 }, &mut last_emit, start + Duration::from_millis(49));
+        let periodic = JobPhase::Downloading { done: 1_001, total: 10_000 };
+        shared.report_progress(APP, periodic, &mut last_emit, start + Duration::from_millis(50));
+        let immediate = [
+            JobPhase::Downloading { done: 0, total: 10_000 },
+            JobPhase::Reconnecting { done: 1_001, total: 10_000 },
+            JobPhase::Verifying,
+            JobPhase::Waiting,
+            JobPhase::Installing,
+            JobPhase::Removing,
+            JobPhase::Downloading { done: 10_000, total: 10_000 },
+        ];
+        for phase in immediate {
+            shared.report_progress(APP, phase, &mut last_emit, start + Duration::from_millis(51));
+        }
+        let events = shared.events.lock().unwrap();
+        let expected = [first, periodic].into_iter().chain(immediate).collect::<Vec<_>>();
+        assert_eq!(events.len(), expected.len());
+        for (event, phase) in events.iter().zip(expected) {
+            assert!(matches!(event, Event::Progress { app, phase: emitted } if app == APP && *emitted == phase));
         }
     }
 
