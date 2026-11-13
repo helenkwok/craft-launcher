@@ -111,9 +111,10 @@ pub(crate) enum UiAction {
 pub(crate) enum Dialog {
     Notes(String),
     ConfirmUninstall(String),
+    ConfirmUninstallCli(String),
     UnlockVersion { app: String, tag: String },
-    Install { app: String, folder: String },
-    Replace { app: String, path: String },
+    Install { app: String, folder: String, download_again: bool },
+    Replace { app: String, path: String, download_again: bool },
     Settings,
     LauncherUpdate(artcraft_launcher_core::Release),
     Versions(String),
@@ -127,6 +128,7 @@ impl Dialog {
         match self {
             Dialog::Notes(id) => ("notes", id),
             Dialog::ConfirmUninstall(id) => ("uninstall", id),
+            Dialog::ConfirmUninstallCli(id) => ("uninstall-cli", id),
             Dialog::UnlockVersion { app, .. } => ("unlock-version", app),
             Dialog::Install { app, .. } => ("install", app),
             Dialog::Replace { app, .. } => ("replace", app),
@@ -402,7 +404,12 @@ impl LauncherUi {
                 continue;
             }
             match action {
-                UiAction::Command(command) => self.backend.send(command.clone()),
+                UiAction::Command(command) => {
+                    if matches!(command, Command::InstallCli { .. } | Command::UninstallCli { .. }) {
+                        self.configure();
+                    }
+                    self.backend.send(command.clone());
+                }
                 UiAction::Launch(id) => {
                     let flags = self.settings.launch_flags.get(id).map_or("", String::as_str);
                     // The dialog only saves flags that split, but the settings file can be edited by hand.
@@ -464,7 +471,7 @@ impl LauncherUi {
         let options = BackendOptions {
             kinds: self.settings.preferred_kinds.clone(),
             prereleases: self.settings.prereleases,
-            install_cli: self.settings.install_cli,
+            cli_apps: self.entries.iter().filter(|entry| self.settings.cli_enabled(entry.app.id)).map(|entry| entry.app.id.to_string()).collect(),
             versions: self.settings.versions.clone(),
             launcher_version: self.settings.launcher_version.clone(),
             install_locations: self.settings.install_locations.clone(),
@@ -501,12 +508,23 @@ impl LauncherUi {
     /// installed, it opens the folder dialog and sends nothing until that is confirmed; otherwise
     /// it queues `Install` immediately, including for an already installed app (update/reinstall).
     pub(crate) fn install_app(&mut self, id: &str) {
+        self.request_install(id, false);
+    }
+
+    pub(crate) fn request_install(&mut self, id: &str, download_again: bool) {
         if !self.custom_install_folders() || self.entry(id).is_some_and(|e| e.installed.is_some()) {
-            self.act_command(Command::Install { app: id.to_string() });
+            self.act_command(if download_again {
+                Command::DownloadAgain { app: id.to_string(), path: None }
+            } else {
+                Command::Install { app: id.to_string() }
+            });
             return;
         }
-        self.dialog =
-            Some(Dialog::Install { app: id.to_string(), folder: self.settings.install_locations.per_app.get(id).cloned().unwrap_or_default() });
+        self.dialog = Some(Dialog::Install {
+            app: id.to_string(),
+            folder: self.settings.install_locations.per_app.get(id).cloned().unwrap_or_default(),
+            download_again,
+        });
     }
 
     /// Non-drawing work: runs every frame and also while the window is hidden in the tray.
@@ -544,6 +562,7 @@ impl LauncherUi {
             changed |= self.handle(event);
         }
         if changed {
+            self.configure();
             self.announce_updates(host);
             if self.settings.auto_update {
                 self.trigger_auto_updates();
@@ -593,6 +612,18 @@ impl LauncherUi {
                 }
                 true
             }
+            Event::AppManaged { app, managed } => {
+                if let Some(entry) = self.entry_mut(&app) {
+                    entry.app_managed = managed;
+                }
+                false
+            }
+            Event::CliManaged { app, managed } => {
+                if let Some(entry) = self.entry_mut(&app) {
+                    entry.cli_managed = managed;
+                }
+                false
+            }
             Event::Progress { app, phase } => {
                 self.on_progress(app, phase);
                 false
@@ -612,6 +643,12 @@ impl LauncherUi {
                 }
                 false
             }
+            Event::CliPaused { app, download } => {
+                if let Some(e) = self.entry_mut(&app) {
+                    e.cli_paused = download;
+                }
+                true
+            }
             Event::ReadyToInstall { app, ready } => {
                 if let Some(e) = self.entry_mut(&app) {
                     e.ready = ready;
@@ -625,8 +662,12 @@ impl LauncherUi {
                 }
                 true
             }
-            Event::Occupied { app, path } => {
-                self.dialog = Some(Dialog::Replace { app, path });
+            Event::Occupied { app, path, download_again } => {
+                self.dialog = Some(Dialog::Replace { app, path, download_again });
+                false
+            }
+            Event::DownloadDiscardFailed { error, .. } => {
+                self.toast(error, true);
                 false
             }
             Event::JobFinished { app, result } => {
@@ -1198,6 +1239,32 @@ mod tests {
         );
         assert!(ui.entry(id).unwrap().detected);
         assert_eq!(sent.borrow().as_slice(), &[Command::Detect]);
+    }
+
+    #[test]
+    fn global_cli_default_includes_apps_added_by_catalog_refresh() {
+        let (mut ui, sent, _) = launcher();
+        ui.settings.cli_default = true;
+        let added = ui.entries.pop().expect("catalog app").app.id;
+        ui.configure();
+        assert!(matches!(sent.borrow().last(), Some(Command::Configure(options)) if !options.cli_apps.contains(added)));
+        assert!(ui.handle(Event::CatalogUpdated));
+        ui.configure();
+        assert!(matches!(sent.borrow().last(), Some(Command::Configure(options)) if options.cli_apps.contains(added)));
+    }
+
+    #[test]
+    fn legacy_cli_default_preserves_backend_upkeep() {
+        for enabled in [false, true] {
+            let (mut ui, sent, _) = launcher();
+            ui.settings = serde_json::from_value(serde_json::json!({ "install_cli": enabled })).expect("legacy CLI settings");
+            ui.configure();
+            let commands = sent.borrow();
+            let Some(Command::Configure(options)) = commands.last() else { panic!("expected backend options") };
+            for entry in &ui.entries {
+                assert_eq!(options.cli_apps.contains(entry.app.id), enabled);
+            }
+        }
     }
 
     /// A CJK preference is drawable only while that language's own face is installed: having the

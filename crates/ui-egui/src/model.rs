@@ -13,6 +13,10 @@ pub struct AppEntry {
     pub app: &'static CraftApp,
     pub latest: Option<LatestRelease>,
     pub installed: Option<Installed>,
+    /// An app install record remains, even if its files have been removed.
+    pub app_managed: bool,
+    /// A CLI owned by the launcher remains, even if its app is absent.
+    pub cli_managed: bool,
     /// Detection has answered at least once.
     pub detected: bool,
     pub job: Option<JobPhase>,
@@ -20,6 +24,8 @@ pub struct AppEntry {
     pub origin: Option<artcraft_launcher_core::protocol::Origin>,
     /// A download waiting to be resumed.
     pub paused: Option<PausedDownload>,
+    /// A separate CLI download; resuming must not reinstall the GUI app.
+    pub cli_paused: Option<PausedDownload>,
     /// A finished download waiting for another try at installing it.
     pub ready: bool,
     /// The backend's word on whether an install of the latest release over the installed copy
@@ -31,7 +37,24 @@ pub struct AppEntry {
 
 impl AppEntry {
     pub fn new(app: &'static CraftApp) -> Self {
-        Self { app, latest: None, installed: None, detected: false, job: None, origin: None, paused: None, ready: false, installable: None }
+        Self {
+            app,
+            latest: None,
+            installed: None,
+            app_managed: false,
+            cli_managed: false,
+            detected: false,
+            job: None,
+            origin: None,
+            paused: None,
+            cli_paused: None,
+            ready: false,
+            installable: None,
+        }
+    }
+
+    pub fn paused_download(&self) -> Option<PausedDownload> {
+        self.cli_paused.or(self.paused)
     }
 
     pub fn release(&self) -> Option<&Release> {
@@ -39,6 +62,25 @@ impl AppEntry {
             Some(LatestRelease::Found(r)) => Some(r),
             _ => None,
         }
+    }
+
+    pub fn has_cli(&self, platform: Option<Platform>) -> bool {
+        let (Some(release), Some(platform)) = (self.release(), platform) else { return false };
+        let stems: Vec<_> = self.app.stems().collect();
+        platform.os == artcraft_launcher_core::Os::MacOs
+            && self.app.mac_team.is_some()
+            && artcraft_launcher_core::platform::pick_cli_asset(release, &stems, platform).is_some()
+    }
+
+    /// A separate tool must match the installed app, never a newer or unknown version.
+    pub fn can_install_cli(&self, platform: Option<Platform>) -> bool {
+        self.job.is_none()
+            && self.has_cli(platform)
+            && self
+                .installed
+                .as_ref()
+                .and_then(|installed| installed.version.as_ref())
+                .is_some_and(|version| self.release().and_then(|release| release.version.as_ref()) == Some(version))
     }
 
     /// Whether the latest release has something for `platform`.
@@ -124,7 +166,7 @@ pub fn status_text(status: &AppStatus, manage_apps: bool) -> (String, Tone) {
 
 /// [`status_text`], but saying so when a download is paused or reconnecting.
 pub fn entry_status_text(e: &AppEntry, status: &AppStatus, manage_apps: bool) -> (String, Tone) {
-    match (e.job, e.paused) {
+    match (e.job, e.paused_download()) {
         (Some(JobPhase::Reconnecting { .. }), _) => (t("Reconnecting…").to_string(), Tone::Warn),
         (Some(JobPhase::Downloading { .. }), _) if status.is_installed() => (t("Updating…").to_string(), Tone::Info),
         (Some(JobPhase::Downloading { .. }), _) => (t("Downloading…").to_string(), Tone::Info),

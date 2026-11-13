@@ -631,6 +631,129 @@ fn message_templates_match_real_messages() {
 }
 
 #[test]
+fn complete_catalogs_translate_cli_results_and_preserve_runtime_values() {
+    let cases: &[(&str, &[&str])] = &[
+        ("PdfCraft command-line tool 0.20.0 was installed", &["PdfCraft", "0.20.0"]),
+        ("PdfCraft command-line tool was removed", &["PdfCraft"]),
+        ("Enable this app's command-line tool on macOS before installing it.", &["macOS"]),
+        ("Check for updates before installing the command-line tool.", &[]),
+        ("Check for updates after changing the selected version before installing the command-line tool.", &[]),
+        ("Install the selected app version before installing its matching command-line tool.", &[]),
+        ("this release has no command-line tool; the installed tool stays at 0.19.0", &["0.19.0"]),
+        ("this release has no command-line tool for this platform", &[]),
+        ("the command-line tool reports version 0.19.0, but this release requires 0.20.0", &["0.19.0", "0.20.0"]),
+        ("PdfCraft's download does not match the advertised version 0.20.0.", &["PdfCraft", "0.20.0"]),
+        ("PdfCraft's download URL filename does not match selected asset pdfcraft-cli-0.20.0.zip.", &["PdfCraft", "pdfcraft-cli-0.20.0.zip"]),
+        ("PdfCraft installed: 0.20.0 (PdfCraft command-line tool 0.20.0 was installed)", &["PdfCraft", "0.20.0"]),
+        (
+            "PdfCraft updated to 0.20.0 (its command-line tool wasn't installed: this release has no command-line tool; the installed tool stays at 0.19.0)",
+            &["PdfCraft", "0.20.0", "0.19.0"],
+        ),
+        (
+            "PdfCraft installed: 0.20.0 (this release publishes no checksum, so only its size was checked) (PdfCraft command-line tool 0.20.0 was installed)",
+            &["PdfCraft", "0.20.0"],
+        ),
+        (
+            "PdfCraft command-line tool couldn't be removed (couldn't inspect /tmp/CLI tools/PdfCraft (Permission denied)); its record was kept for retry.",
+            &["PdfCraft", "/tmp/CLI tools/PdfCraft", "Permission denied"],
+        ),
+        (
+            "PdfCraft command-line tool was removed, but its removal record couldn't be saved (Disk full); its record was kept for retry.",
+            &["PdfCraft", "Disk full"],
+        ),
+        (
+            "couldn't save the command-line tool's record (Disk full); couldn't restore the old tool (Permission denied); recovery files were kept at /tmp/CLI tools/PdfCraft",
+            &["Disk full", "Permission denied", "/tmp/CLI tools/PdfCraft"],
+        ),
+        ("the command-line tool ZIP contains an unsafe path, link or special file", &["ZIP"]),
+        (
+            "macOS verification of the command-line tool (signature integrity) did not succeed (codesign status 1), so it wasn't installed",
+            &["macOS", "codesign status 1"],
+        ),
+        (
+            "macOS verification of the command-line tool (developer identity) did not succeed (codesign status 1), so it wasn't installed",
+            &["macOS", "codesign status 1"],
+        ),
+        (
+            "macOS verification of the command-line tool (notarization) did not succeed (codesign status 1), so it wasn't installed",
+            &["macOS", "codesign status 1"],
+        ),
+        ("couldn't discard /tmp/CLI tools/PdfCraft (Permission denied)", &["/tmp/CLI tools/PdfCraft", "Permission denied"]),
+        (
+            "Couldn't inspect /tmp/CLI tools/PdfCraft (Permission denied); its removal record was kept for retry.",
+            &["/tmp/CLI tools/PdfCraft", "Permission denied"],
+        ),
+        (
+            "/tmp/CLI tools/PdfCraft is still present but couldn't be identified as PdfCraft; it was left alone and its removal record was kept for retry.",
+            &["/tmp/CLI tools/PdfCraft", "PdfCraft"],
+        ),
+    ];
+    for lang in Lang::all().filter(|lang| lang.complete_menus()) {
+        for &(source, values) in cases {
+            let translated = message(lang, source);
+            assert_ne!(translated.as_str(), source, "{}: untranslated CLI result {source}", lang.code());
+            for &value in values {
+                assert!(translated.contains(value), "{}: lost runtime value {value:?}: {translated}", lang.code());
+            }
+            for english in ["command-line tool", "couldn't inspect", "wasn't installed", "was installed", "recovery files were kept", "no checksum"] {
+                assert!(!translated.contains(english), "{}: untranslated nested CLI result: {translated}", lang.code());
+            }
+        }
+    }
+}
+
+#[test]
+fn complete_catalogs_translate_composed_cli_results_before_generic_version_messages() {
+    for lang in Lang::all().filter(|lang| lang.complete_menus()) {
+        for result in ["PdfCraft installed: 0.20.0", "PdfCraft updated to 0.20.0"] {
+            for checksum in ["", " (this release publishes no checksum, so only its size was checked)"] {
+                for cli in [
+                    "PdfCraft command-line tool 0.20.0 was installed",
+                    "its command-line tool wasn't installed: this release has no command-line tool; the installed tool stays at 0.19.0",
+                ] {
+                    let source = format!("{result}{checksum} ({cli})");
+                    let translated = message(lang, &source);
+                    for value in ["PdfCraft", "0.20.0"] {
+                        assert!(translated.contains(value), "{}: lost {value}: {translated}", lang.code());
+                    }
+                    if source.contains("0.19.0") {
+                        assert!(translated.contains("0.19.0"), "{}: lost retained CLI version: {translated}", lang.code());
+                    }
+                    for english in ["command-line tool", "wasn't installed", "no checksum"] {
+                        assert!(!translated.contains(english), "{}: generic version template captured CLI result: {translated}", lang.code());
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn nested_message_translation_keeps_identities_and_unknown_reasons_literal() {
+    let cat = Catalog::parse(
+        "@msg\tknown failure\tbekannter Fehler\n\
+         @msg\tresult: {error}\tErgebnis: {error}\n\
+         @msg\tidentity: {name}, {version}, {path}\tIdentität: {name}, {version}, {path}\n",
+    );
+    assert_eq!(cat.message("result: known failure").as_deref(), Some("Ergebnis: bekannter Fehler"));
+    assert_eq!(cat.message("result: external stderr: ünicode {name}").as_deref(), Some("Ergebnis: external stderr: ünicode {name}"));
+    assert_eq!(
+        cat.message("identity: known failure, known failure, known failure").as_deref(),
+        Some("Identität: known failure, known failure, known failure")
+    );
+}
+
+#[test]
+fn nested_message_translation_has_a_fixed_depth_limit() {
+    let cat = Catalog::parse("@msg\twrap({error})\tHülle({error})\n");
+    let input = format!("{}external reason{}", "wrap(".repeat(12), ")".repeat(12));
+    let translated = cat.message(&input).expect("outer wrapper is translated");
+    assert_eq!(translated.matches("Hülle(").count(), 8);
+    assert_eq!(translated.matches("wrap(").count(), 4);
+    assert!(translated.contains("external reason"));
+}
+
+#[test]
 fn complete_catalogs_translate_package_formats() {
     use artcraft_launcher_core::PackageKind;
     let kinds = [

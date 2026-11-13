@@ -100,8 +100,6 @@
 	Only when I ask	Csak kézi kereséskor
 	Automatically download and install updates	Frissítések automatikus letöltése és telepítése
 	Ask for permission once when updating all apps	Engedély kérése csak egyszer az összes alkalmazás frissítésekor
-	Install each app's command-line tool and keep it up to date	Az egyes alkalmazások parancssori eszközének telepítése és naprakészen tartása
-	The tool is installed the next time an app is installed or updated, and only if its release has one.	Az eszköz az alkalmazás következő telepítésekor vagy frissítésekor települ, és csak akkor, ha a kiadás tartalmaz ilyet.
 	To use the tools in Terminal, add this line to your shell's start-up file:	Az eszközök Terminálban való használatához add hozzá ezt a sort a shell indítófájljához:
 	Notify me when an installed app has an update	Értesítés a telepített alkalmazásokhoz elérhető frissítésekről
 	Include pre-releases (betas and release candidates)	Előzetes kiadások engedélyezése (béta- és kiadásra jelölt verziók)
@@ -453,3 +451,80 @@ anicraft	Classic tweens with eight easing presets and custom ease curves, plus s
 	Unlock version?	Feloldja a verzió zárolását?
 	{app} is pinned to {version}. Follow the latest release instead?	A(z) {app} a(z) {version} verzióra van rögzítve. Inkább a legújabb kiadást kövesse?
 	Unlock	Feloldás
+	Install command-line tool and keep it up to date	Parancssori eszköz telepítése és naprakészen tartása
+	Install or repair command-line tool	Parancssori eszköz telepítése vagy javítása
+	Install command-line tools alongside apps by default	Parancssori eszközök telepítése az alkalmazásokkal együtt alapértelmezés szerint
+	Available tools are installed on the next app install or update. Change individual apps in their menus.	Az elérhető eszközök az alkalmazás következő telepítésekor vagy frissítésekor települnek. Az egyes alkalmazások beállítását a saját menüjükben módosíthatja.
+	Uninstall command-line tool…	Parancssori eszköz eltávolítása…
+	Uninstall command-line tool?	Eltávolítja a parancssori eszközt?
+	Only the command-line tool will be removed. Your documents and settings stay.	Csak a parancssori eszköz lesz eltávolítva. A dokumentumok és a beállítások megmaradnak.
+
+# CLI install/update/removal/recovery. Names, paths, versions are opaque identities; cli/error/restore/removed may contain localized nested messages.
+@msg	{name} command-line tool {version} was installed	A(z) {name} parancssori eszközének {version} verziója telepítve
+@msg	{name} command-line tool was removed	A(z) {name} parancssori eszköze eltávolítva
+@msg	{name} command-line tool couldn't be removed ({error}); its record was kept for retry.	A(z) {name} parancssori eszközét nem sikerült eltávolítani ({error}); a nyilvántartási bejegyzése megmaradt az újrapróbálkozáshoz.
+@msg	{name} was removed, but its command-line tool couldn't be removed ({error}); its record was kept for retry.	A(z) {name} eltávolítva, de a parancssori eszközét nem sikerült eltávolítani ({error}); az eszköz nyilvántartási bejegyzése megmaradt az újrapróbálkozáshoz.
+@msg	{removed}, but its removal record couldn't be saved ({error}); its record was kept for retry.	{removed}, de az eltávolítási bejegyzését nem sikerült menteni ({error}); a nyilvántartási bejegyzése megmaradt az újrapróbálkozáshoz.
+@msg	Enable this app's command-line tool on macOS before installing it.	Telepítés előtt engedélyezze az alkalmazás parancssori eszközét macOS rendszeren.
+@msg	Check for updates before installing the command-line tool.	A parancssori eszköz telepítése előtt keressen frissítéseket.
+@msg	Check for updates after changing the selected version before installing the command-line tool.	A kiválasztott verzió módosítása után keressen frissítéseket, mielőtt telepíti a parancssori eszközt.
+@msg	Install the selected app version before installing its matching command-line tool.	Telepítse a kiválasztott alkalmazásverziót, mielőtt telepíti a hozzá tartozó parancssori eszközt.
+@msg	command-line tools aren't installed in portable mode	hordozható módban nem települnek parancssori eszközök
+@msg	this release has no command-line tool; the installed tool stays at {version}	ez a kiadás nem tartalmaz parancssori eszközt; a telepített eszköz verziója {version} marad
+@msg	this release has no command-line tool for this platform	ez a kiadás nem tartalmaz parancssori eszközt ehhez a platformhoz
+@msg	command-line tool installation is only available on macOS	a parancssori eszköz telepítése csak macOS rendszeren érhető el
+@msg	ArtCraft Launcher has no macOS signing team recorded for this app, so its command-line tool wasn't installed	az ArtCraft Launcher nem tart nyilván macOS-aláírócsapatot ehhez az alkalmazáshoz, ezért a parancssori eszköze nem lett telepítve
+@msg	no macOS signing team is configured for this app	ehhez az alkalmazáshoz nincs beállítva macOS-aláírócsapat
+@msg	no valid macOS signing team is configured, so the command-line tool wasn't installed	nincs beállítva érvényes macOS-aláírócsapat, ezért a parancssori eszköz nem lett telepítve
+@msg	{name}'s command-line tool download does not match the advertised version {version}.	a(z) {name} letöltött parancssori eszköze nem felel meg a meghirdetett {version} verziónak.
+@msg	{path} already exists and wasn't made by ArtCraft Launcher, so the command-line tool wasn't installed	{path} már létezik, és nem az ArtCraft Launcher hozta létre, ezért a parancssori eszköz nem lett telepítve
+@msg	{path} is a link, so the command-line tool wasn't installed	{path} hivatkozás, ezért a parancssori eszköz nem lett telepítve
+@msg	{path} isn't a folder, so the command-line tool wasn't installed	{path} nem mappa, ezért a parancssori eszköz nem lett telepítve
+@msg	the download doesn't contain {name}	a letöltés nem tartalmazza ezt: {name}
+@msg	couldn't read the command-line tool's unusual path	a parancssori eszköz szokatlan útvonalát nem sikerült beolvasni
+@msg	couldn't read the command-line tool's version ({error})	a parancssori eszköz verzióját nem sikerült beolvasni ({error})
+@msg	the command-line tool didn't report a recognizable version	a parancssori eszköz nem adott meg felismerhető verziót
+@msg	the requested command-line tool version isn't valid	a parancssori eszköz kért verziója érvénytelen
+@msg	the command-line tool reports version {actual}, but this release requires {expected}	a parancssori eszköz által jelzett verzió {actual}, de ez a kiadás ezt igényli: {expected}
+@msg	couldn't move the old command-line tool aside ({error})	a régi parancssori eszközt nem sikerült félretenni ({error})
+@msg	couldn't put the command-line tool in place ({error})	a parancssori eszközt nem sikerült a helyére tenni ({error})
+@msg	couldn't save the command-line tool's record ({error})	a parancssori eszköz nyilvántartási bejegyzését nem sikerült menteni ({error})
+@msg	couldn't remove the new tool ({error})	az új eszközt nem sikerült eltávolítani ({error})
+@msg	couldn't restore the old tool ({error})	a régi eszközt nem sikerült visszaállítani ({error})
+@msg	couldn't remove the new link ({error})	az új hivatkozást nem sikerült eltávolítani ({error})
+@msg	couldn't restore the old link ({error})	a régi hivatkozást nem sikerült visszaállítani ({error})
+@msg	couldn't read the command-line tool ZIP ({error})	a parancssori eszköz ZIP-archívumát nem sikerült beolvasni ({error})
+@msg	the command-line tool ZIP contains duplicate paths	a parancssori eszköz ZIP-archívuma ismétlődő útvonalakat tartalmaz
+@msg	the command-line tool ZIP contains too many entries	a parancssori eszköz ZIP-archívuma túl sok bejegyzést tartalmaz
+@msg	the command-line tool ZIP exceeds the maximum unpacked size	a parancssori eszköz ZIP-archívumának kibontott mérete meghaladja a megengedett maximumot
+@msg	the command-line tool ZIP contains an unsafe path	a parancssori eszköz ZIP-archívuma nem biztonságos útvonalat tartalmaz
+@msg	the command-line tool ZIP contains an unsafe path, link or special file	a parancssori eszköz ZIP-archívuma nem biztonságos útvonalat, hivatkozást vagy speciális fájlt tartalmaz
+@msg	the command-line tool ZIP has a nonempty directory entry	a parancssori eszköz ZIP-archívuma nem üres könyvtárbejegyzést tartalmaz
+@msg	the command-line tool ZIP has an unexpected unpacked size	a parancssori eszköz ZIP-archívumának kibontott mérete eltér a várttól
+@msg	couldn't check the tool's unusual path, so it wasn't installed	az eszköz szokatlan útvonalát nem sikerült ellenőrizni, ezért nem lett telepítve
+@msg	macOS verification of the command-line tool (signature integrity) did not succeed ({error}), so it wasn't installed	a parancssori eszköz macOS-ellenőrzése (az aláírás sértetlensége) sikertelen volt ({error}), ezért nem lett telepítve
+@msg	macOS verification of the command-line tool (developer identity) did not succeed ({error}), so it wasn't installed	a parancssori eszköz macOS-ellenőrzése (a fejlesztő személyazonossága) sikertelen volt ({error}), ezért nem lett telepítve
+@msg	macOS verification of the command-line tool (notarization) did not succeed ({error}), so it wasn't installed	a parancssori eszköz macOS-ellenőrzése (Apple általi hitelesítés) sikertelen volt ({error}), ezért nem lett telepítve
+@msg	{path} already exists and doesn't point to this command-line tool, so it wasn't replaced	{path} már létezik, és nem erre a parancssori eszközre mutat, ezért nem lett lecserélve
+@msg	the command-line tool's removal record doesn't match this app, so nothing was removed	a parancssori eszköz eltávolítási bejegyzése nem ehhez az alkalmazáshoz tartozik, ezért semmi sem lett eltávolítva
+@msg	{path} isn't a real folder, so nothing was removed through it	{path} nem valódi mappa, ezért semmi sem lett eltávolítva rajta keresztül
+@msg	couldn't inspect {path} ({error})	nem sikerült megvizsgálni: {path} ({error})
+@msg	couldn't create {path} ({error})	nem sikerült létrehozni: {path} ({error})
+@msg	couldn't create a staging folder in {path} ({error})	nem sikerült előkészítési mappát létrehozni itt: {path} ({error})
+@msg	couldn't make {name} runnable ({error})	nem sikerült futtathatóvá tenni: {name} ({error})
+@msg	couldn't link {path} ({error})	nem sikerült létrehozni a hivatkozást: {path} ({error})
+@msg	couldn't remove {path} ({error})	nem sikerült eltávolítani: {path} ({error})
+@msg	{error}; {restore}; recovery files were kept at {path}	{error}; {restore}; a helyreállítási fájlok megmaradtak itt: {path}
+@msg	couldn't discard {path} ({error})	nem sikerült eldobni: {path} ({error})
+@msg	Couldn't inspect {path} ({error}); its removal record was kept for retry.	Nem sikerült megvizsgálni: {path} ({error}); az eltávolítási bejegyzése megmaradt az újrapróbálkozáshoz.
+@msg	{path} is still present but couldn't be identified as {name}; it was left alone and its removal record was kept for retry.	{path} még jelen van, de nem sikerült a(z) {name} néven azonosítani; érintetlen maradt, és az eltávolítási bejegyzése megmaradt az újrapróbálkozáshoz.
+@msg	{name} installed: {version} ({cli})	{name} telepítve: {version} ({cli})
+@msg	{name} installed: {version} (its command-line tool wasn't installed: {error})	{name} telepítve: {version} (a parancssori eszköze nem lett telepítve: {error})
+@msg	{name} installed: {version} (this release publishes no checksum, so only its size was checked) ({cli})	{name} telepítve: {version} (ehhez a kiadáshoz nem adtak meg ellenőrzőösszeget, ezért csak a fájl méretét ellenőriztük) ({cli})
+@msg	{name} installed: {version} (this release publishes no checksum, so only its size was checked) (its command-line tool wasn't installed: {error})	{name} telepítve: {version} (ehhez a kiadáshoz nem adtak meg ellenőrzőösszeget, ezért csak a fájl méretét ellenőriztük) (a parancssori eszköze nem lett telepítve: {error})
+@msg	{name} updated to {version} ({cli})	{name} frissítve. Verzió: {version} ({cli})
+@msg	{name} updated to {version} (its command-line tool wasn't installed: {error})	{name} frissítve. Verzió: {version} (a parancssori eszköze nem lett telepítve: {error})
+@msg	{name} updated to {version} (this release publishes no checksum, so only its size was checked) ({cli})	{name} frissítve. Verzió: {version} (ehhez a kiadáshoz nem adtak meg ellenőrzőösszeget, ezért csak a fájl méretét ellenőriztük) ({cli})
+@msg	{name} updated to {version} (this release publishes no checksum, so only its size was checked) (its command-line tool wasn't installed: {error})	{name} frissítve. Verzió: {version} (ehhez a kiadáshoz nem adtak meg ellenőrzőösszeget, ezért csak a fájl méretét ellenőriztük) (a parancssori eszköze nem lett telepítve: {error})
+@msg	{name}'s download does not match the advertised version {version}.	a(z) {name} letöltése nem felel meg a meghirdetett {version} verziónak.
+@msg	{name}'s download URL filename does not match selected asset {asset}.	a(z) {name} letöltési URL-jében szereplő fájlnév nem felel meg a kiválasztott {asset} kiadási fájlnak.

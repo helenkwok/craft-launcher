@@ -76,8 +76,6 @@
 	Only when I ask	僅在我要求時
 	Automatically download and install updates	自動下載並安裝更新
 	Ask for permission once when updating all apps	更新所有應用程式時僅請求一次權限
-	Install each app's command-line tool and keep it up to date	安裝每個應用程式的命令列工具並保持更新
-	The tool is installed the next time an app is installed or updated, and only if its release has one.	此工具會在下次安裝或更新應用程式時安裝，且僅在該版本包含此工具時才會安裝。
 	To use the tools in Terminal, add this line to your shell's start-up file:	若要在終端機中使用這些工具，請將下面這一行加入 shell 的啟動檔：
 	Notify me when an installed app has an update	已安裝的應用程式有更新時通知我
 	Include pre-releases (betas and release candidates)	包含預先發行版（Beta 版與候選發行版）
@@ -411,3 +409,80 @@ anicraft	Classic tweens with eight easing presets and custom ease curves, plus s
 	Unlock version?	解除版本鎖定？
 	{app} is pinned to {version}. Follow the latest release instead?	{app} 已鎖定為 {version}。是否改為使用最新版本？
 	Unlock	解除鎖定
+	Install command-line tool and keep it up to date	安裝命令列工具並保持更新
+	Install or repair command-line tool	安裝或修復命令列工具
+	Install command-line tools alongside apps by default	預設隨應用程式一起安裝命令列工具
+	Available tools are installed on the next app install or update. Change individual apps in their menus.	可用工具會在下次安裝或更新應用程式時安裝。可在各應用程式的選單中變更個別設定。
+	Uninstall command-line tool…	解除安裝命令列工具…
+	Uninstall command-line tool?	解除安裝命令列工具？
+	Only the command-line tool will be removed. Your documents and settings stay.	只會移除命令列工具。您的文件和設定將會保留。
+
+# CLI install, update, removal and recovery messages. Names, versions and paths stay literal; nested known errors may be translated.
+@msg	{name} command-line tool {version} was installed	{name} 命令列工具 {version} 已安裝
+@msg	{name} command-line tool was removed	{name} 命令列工具已移除
+@msg	{name} command-line tool couldn't be removed ({error}); its record was kept for retry.	無法移除 {name} 命令列工具（{error}）；已保留紀錄以便重試。
+@msg	{name} was removed, but its command-line tool couldn't be removed ({error}); its record was kept for retry.	{name} 已移除，但其命令列工具無法移除（{error}）；已保留紀錄以便重試。
+@msg	{removed}, but its removal record couldn't be saved ({error}); its record was kept for retry.	{removed}，但無法儲存移除紀錄（{error}）；已保留原紀錄以便重試。
+@msg	Enable this app's command-line tool on macOS before installing it.	安裝前，請先在 macOS 上啟用此應用程式的命令列工具。
+@msg	Check for updates before installing the command-line tool.	安裝命令列工具前，請先檢查更新。
+@msg	Check for updates after changing the selected version before installing the command-line tool.	變更選取的版本後，請先檢查更新，再安裝命令列工具。
+@msg	Install the selected app version before installing its matching command-line tool.	安裝對應的命令列工具前，請先安裝選取的應用程式版本。
+@msg	command-line tools aren't installed in portable mode	可攜模式下不安裝命令列工具
+@msg	this release has no command-line tool; the installed tool stays at {version}	此版本未提供命令列工具；已安裝的工具會保留在 {version} 版本
+@msg	this release has no command-line tool for this platform	此版本未提供適用於此平台的命令列工具
+@msg	command-line tool installation is only available on macOS	命令列工具僅支援在 macOS 上安裝
+@msg	ArtCraft Launcher has no macOS signing team recorded for this app, so its command-line tool wasn't installed	ArtCraft Launcher 未記錄此應用程式的 macOS 簽署團隊，因此未安裝其命令列工具
+@msg	no macOS signing team is configured for this app	尚未為此應用程式設定 macOS 簽署團隊
+@msg	no valid macOS signing team is configured, so the command-line tool wasn't installed	未設定有效的 macOS 簽署團隊，因此未安裝命令列工具
+@msg	{name}'s command-line tool download does not match the advertised version {version}.	{name} 的命令列工具下載內容與公布的 {version} 版本不符。
+@msg	{path} already exists and wasn't made by ArtCraft Launcher, so the command-line tool wasn't installed	{path} 已存在且並非由 ArtCraft Launcher 建立，因此未安裝命令列工具
+@msg	{path} is a link, so the command-line tool wasn't installed	{path} 是連結，因此未安裝命令列工具
+@msg	{path} isn't a folder, so the command-line tool wasn't installed	{path} 不是檔案夾，因此未安裝命令列工具
+@msg	the download doesn't contain {name}	下載內容中沒有 {name}
+@msg	couldn't read the command-line tool's unusual path	無法讀取命令列工具的異常路徑
+@msg	couldn't read the command-line tool's version ({error})	無法讀取命令列工具的版本（{error}）
+@msg	the command-line tool didn't report a recognizable version	命令列工具未回報可辨識的版本
+@msg	the requested command-line tool version isn't valid	要求的命令列工具版本無效
+@msg	the command-line tool reports version {actual}, but this release requires {expected}	命令列工具回報的版本為 {actual}，但此版本要求 {expected}
+@msg	couldn't move the old command-line tool aside ({error})	無法暫存舊命令列工具（{error}）
+@msg	couldn't put the command-line tool in place ({error})	無法放置命令列工具（{error}）
+@msg	couldn't save the command-line tool's record ({error})	無法儲存命令列工具的紀錄（{error}）
+@msg	couldn't remove the new tool ({error})	無法移除新工具（{error}）
+@msg	couldn't restore the old tool ({error})	無法復原舊工具（{error}）
+@msg	couldn't remove the new link ({error})	無法移除新連結（{error}）
+@msg	couldn't restore the old link ({error})	無法復原舊連結（{error}）
+@msg	couldn't read the command-line tool ZIP ({error})	無法讀取命令列工具 ZIP（{error}）
+@msg	the command-line tool ZIP contains duplicate paths	命令列工具 ZIP 包含重複路徑
+@msg	the command-line tool ZIP contains too many entries	命令列工具 ZIP 包含過多項目
+@msg	the command-line tool ZIP exceeds the maximum unpacked size	命令列工具 ZIP 超過了解壓縮後的大小上限
+@msg	the command-line tool ZIP contains an unsafe path	命令列工具 ZIP 包含不安全的路徑
+@msg	the command-line tool ZIP contains an unsafe path, link or special file	命令列工具 ZIP 包含不安全的路徑、連結或特殊檔案
+@msg	the command-line tool ZIP has a nonempty directory entry	命令列工具 ZIP 含有非空的目錄項目
+@msg	the command-line tool ZIP has an unexpected unpacked size	命令列工具 ZIP 的解壓縮大小不符預期
+@msg	couldn't check the tool's unusual path, so it wasn't installed	無法檢查工具的異常路徑，因此未安裝
+@msg	macOS verification of the command-line tool (signature integrity) did not succeed ({error}), so it wasn't installed	命令列工具的 macOS 驗證（簽章完整性）未通過（{error}），因此未安裝
+@msg	macOS verification of the command-line tool (developer identity) did not succeed ({error}), so it wasn't installed	命令列工具的 macOS 驗證（開發者身分）未通過（{error}），因此未安裝
+@msg	macOS verification of the command-line tool (notarization) did not succeed ({error}), so it wasn't installed	命令列工具的 macOS 驗證（公證）未通過（{error}），因此未安裝
+@msg	{path} already exists and doesn't point to this command-line tool, so it wasn't replaced	{path} 已存在且未指向此命令列工具，因此未取代
+@msg	the command-line tool's removal record doesn't match this app, so nothing was removed	命令列工具的移除紀錄與此應用程式不符，因此未移除任何內容
+@msg	{path} isn't a real folder, so nothing was removed through it	{path} 不是真正的檔案夾，因此未透過此路徑移除任何內容
+@msg	couldn't inspect {path} ({error})	無法檢查 {path}（{error}）
+@msg	couldn't create {path} ({error})	無法建立 {path}（{error}）
+@msg	couldn't create a staging folder in {path} ({error})	無法在 {path} 中建立暫存檔案夾（{error}）
+@msg	couldn't make {name} runnable ({error})	無法將 {name} 設為可執行（{error}）
+@msg	couldn't link {path} ({error})	無法建立連結 {path}（{error}）
+@msg	couldn't remove {path} ({error})	無法移除 {path}（{error}）
+@msg	{error}; {restore}; recovery files were kept at {path}	{error}；{restore}；復原檔案保留在 {path}
+@msg	couldn't discard {path} ({error})	無法捨棄 {path}（{error}）
+@msg	Couldn't inspect {path} ({error}); its removal record was kept for retry.	無法檢查 {path}（{error}）；已保留其移除紀錄以便重試。
+@msg	{path} is still present but couldn't be identified as {name}; it was left alone and its removal record was kept for retry.	{path} 仍然存在，但無法確認其為 {name}；未作變更，並保留了移除紀錄以便重試。
+@msg	{name} installed: {version} ({cli})	{name} 已安裝：{version} ({cli})
+@msg	{name} installed: {version} (its command-line tool wasn't installed: {error})	{name} 已安裝：{version} (其命令列工具未安裝：{error})
+@msg	{name} installed: {version} (this release publishes no checksum, so only its size was checked) ({cli})	{name} 已安裝：{version}（此版本未公布檢查碼，因此僅核對檔案大小） ({cli})
+@msg	{name} installed: {version} (this release publishes no checksum, so only its size was checked) (its command-line tool wasn't installed: {error})	{name} 已安裝：{version}（此版本未公布檢查碼，因此僅核對檔案大小） (其命令列工具未安裝：{error})
+@msg	{name} updated to {version} ({cli})	{name} 已更新至 {version} ({cli})
+@msg	{name} updated to {version} (its command-line tool wasn't installed: {error})	{name} 已更新至 {version} (其命令列工具未安裝：{error})
+@msg	{name} updated to {version} (this release publishes no checksum, so only its size was checked) ({cli})	{name} 已更新至 {version}（此版本未公布檢查碼，因此僅核對檔案大小） ({cli})
+@msg	{name} updated to {version} (this release publishes no checksum, so only its size was checked) (its command-line tool wasn't installed: {error})	{name} 已更新至 {version}（此版本未公布檢查碼，因此僅核對檔案大小） (其命令列工具未安裝：{error})
+@msg	{name}'s download does not match the advertised version {version}.	{name} 的下載內容與公布的 {version} 版本不符。
+@msg	{name}'s download URL filename does not match selected asset {asset}.	{name} 的下載 URL 檔名與所選資源 {asset} 不符。

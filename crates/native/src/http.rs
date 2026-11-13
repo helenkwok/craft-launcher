@@ -471,10 +471,12 @@ fn touch(path: &Path) -> bool {
     std::fs::File::options().write(true).open(path).and_then(|f| f.set_modified(std::time::SystemTime::now())).is_ok()
 }
 
-/// Whether a finished download is waiting at `dest`. Judged by size alone: `download` checks it
-/// against the published checksum before anything uses it.
-pub fn finished(dest: &Path, size: u64) -> bool {
-    std::fs::metadata(dest).is_ok_and(|m| m.is_file() && m.len() == size)
+/// Bytes in a retained completed download. Size 0 means unpublished, not an empty file.
+/// This is recovery metadata only: `download` rechecks the published checksum before using it.
+pub fn finished_bytes(dest: &Path, size: u64) -> Option<u64> {
+    let meta = std::fs::symlink_metadata(dest).ok()?;
+    let bytes = meta.len();
+    (meta.is_file() && if size == 0 { bytes > 0 && bytes <= MAX_DOWNLOAD } else { bytes == size }).then_some(bytes)
 }
 
 /// Removes leftovers from the download folder: partial files in an old naming scheme, paused
@@ -510,9 +512,15 @@ pub fn clean_downloads(dir: &Path, partial_max_age: Duration, finished_max_age: 
 }
 
 /// Throws away a paused download, and a finished one kept for another try at installing.
-pub fn discard(dest: &Path, size: u64) {
-    let _ = std::fs::remove_file(part_path(dest, size));
-    let _ = std::fs::remove_file(dest);
+pub fn discard(dest: &Path, size: u64) -> Result<(), String> {
+    for path in [part_path(dest, size), dest.to_path_buf()] {
+        match std::fs::remove_file(&path) {
+            Ok(()) => {}
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => return Err(format!("couldn't discard {} ({error})", path.display())),
+        }
+    }
+    Ok(())
 }
 
 enum AttemptError {
@@ -689,7 +697,8 @@ pub(crate) mod tests {
         let dest = dir.path().join("file.bin");
         let http = Http::new().unwrap();
         http.download(&url, &dest, len, &sha, &Stop::default(), &mut |_| {}).unwrap();
-        assert!(finished(&dest, len) && !finished(&dest, 0));
+        assert_eq!(finished_bytes(&dest, len), Some(len));
+        assert_eq!(finished_bytes(&dest, 0), Some(len));
         // Old enough to be cleaned up, were it not about to be used.
         let old = std::time::SystemTime::now() - Duration::from_secs(40 * 86_400);
         std::fs::File::options().write(true).open(&dest).unwrap().set_modified(old).unwrap();
@@ -705,24 +714,66 @@ pub(crate) mod tests {
         // A cleanup while the installer runs leaves the reused file alone.
         clean_downloads(dir.path(), DAYS_30, DAYS_7);
         assert_eq!(std::fs::read(&dest).unwrap(), body);
-        discard(&dest, len);
-        assert!(!finished(&dest, len));
+        discard(&dest, len).unwrap();
+        assert_eq!(finished_bytes(&dest, len), None);
+    }
+
+    #[test]
+    fn completed_cache_reports_actual_unknown_size_bytes_with_regular_file_and_size_guards() {
+        let dir = tempfile::tempdir().unwrap();
+        let dest = dir.path().join("archive.zip");
+        assert_eq!(finished_bytes(&dest, 0), None);
+        std::fs::write(&dest, b"").unwrap();
+        assert_eq!(finished_bytes(&dest, 0), None);
+        std::fs::write(&dest, b"archive").unwrap();
+        assert_eq!(finished_bytes(&dest, 0), Some(7));
+        assert_eq!(finished_bytes(&dest, 7), Some(7));
+        assert_eq!(finished_bytes(&dest, 6), None);
+        assert_eq!(finished_bytes(dir.path(), 0), None);
+        #[cfg(unix)]
+        {
+            let link = dir.path().join("linked.zip");
+            std::os::unix::fs::symlink(&dest, &link).unwrap();
+            assert_eq!(finished_bytes(&link, 0), None);
+            // POSIX extends this as a sparse file, so the bound needs no multi-gigabyte allocation.
+            let file = std::fs::OpenOptions::new().write(true).open(&dest).unwrap();
+            file.set_len(MAX_DOWNLOAD).unwrap();
+            assert_eq!(finished_bytes(&dest, 0), Some(MAX_DOWNLOAD));
+            file.set_len(MAX_DOWNLOAD + 1).unwrap();
+            assert_eq!(finished_bytes(&dest, 0), None);
+        }
+    }
+
+    #[test]
+    fn failed_partial_discard_preserves_the_finished_archive_and_reports_the_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let dest = dir.path().join("archive.zip");
+        std::fs::write(&dest, b"old").unwrap();
+        let part = part_path(&dest, 3);
+        std::fs::create_dir(&part).unwrap();
+        assert!(discard(&dest, 3).unwrap_err().contains("couldn't discard"));
+        assert_eq!(std::fs::read(&dest).unwrap(), b"old");
+        std::fs::remove_dir(part).unwrap();
+        discard(&dest, 3).unwrap();
+        discard(&dest, 3).unwrap();
+        assert!(!dest.exists());
     }
 
     #[test]
     fn a_kept_file_that_no_longer_matches_is_fetched_again() {
         let (body, sha) = body();
-        let len = body.len() as u64;
-        let (url, requests) = serve(body.clone(), vec![Reply::Full, Reply::Full]);
-        let dir = tempfile::tempdir().unwrap();
-        let dest = dir.path().join("file.bin");
-        let http = Http::new().unwrap();
-        http.download(&url, &dest, len, &sha, &Stop::default(), &mut |_| {}).unwrap();
-        // The same size, so only the checksum can tell.
-        std::fs::write(&dest, vec![b'x'; body.len()]).unwrap();
-        http.download(&url, &dest, len, &sha, &Stop::default(), &mut |_| {}).unwrap();
-        assert_eq!(std::fs::read(&dest).unwrap(), body);
-        assert_eq!(requests.lock().unwrap().len(), 2);
+        for size in [body.len() as u64, 0] {
+            let (url, requests) = serve(body.clone(), vec![Reply::Full, Reply::Full]);
+            let dir = tempfile::tempdir().unwrap();
+            let dest = dir.path().join("file.bin");
+            let http = Http::new().unwrap();
+            http.download(&url, &dest, size, &sha, &Stop::default(), &mut |_| {}).unwrap();
+            // Even unknown-size recovery is only metadata: checksum validation still rejects changed bytes.
+            std::fs::write(&dest, vec![b'x'; body.len()]).unwrap();
+            http.download(&url, &dest, size, &sha, &Stop::default(), &mut |_| {}).unwrap();
+            assert_eq!(std::fs::read(&dest).unwrap(), body);
+            assert_eq!(requests.lock().unwrap().len(), 2);
+        }
     }
 
     #[test]

@@ -195,10 +195,10 @@ impl LauncherUi {
             if self.caps.manage_apps {
                 ui.checkbox(&mut self.settings.batch_updates, tl!("Ask for permission once when updating all apps"));
             }
-            if self.caps.manage_apps && cfg!(target_os = "macos") {
-                ui.checkbox(&mut self.settings.install_cli, tl!("Install each app's command-line tool and keep it up to date"));
-                if self.settings.install_cli {
-                    ui.label(tl!("The tool is installed the next time an app is installed or updated, and only if its release has one."));
+            if self.caps.manage_apps && self.platform.is_some_and(|p| p.os == Os::MacOs) {
+                ui.checkbox(&mut self.settings.cli_default, tl!("Install command-line tools alongside apps by default"));
+                ui.label(tl!("Available tools are installed on the next app install or update. Change individual apps in their menus."));
+                if self.settings.cli_default || !self.settings.cli_apps.is_empty() || self.entries.iter().any(|entry| entry.cli_managed) {
                     ui.label(tl!("To use the tools in Terminal, add this line to your shell's start-up file:"));
                     ui.add(egui::Label::new(egui::RichText::new(artcraft_launcher_core::protocol::MAC_CLI_PATH_LINE).monospace()).selectable(true));
                 }

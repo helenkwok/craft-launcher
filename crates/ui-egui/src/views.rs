@@ -668,7 +668,7 @@ impl LauncherUi {
             }
         }
         if entry.job.is_none()
-            && entry.paused.is_none()
+            && entry.paused_download().is_none()
             && matches!(self.primary_action(&entry, &status), Primary::Install | Primary::Update(_) | Primary::Download(_))
         {
             let sizes = self.download_sizes(&entry);
@@ -903,7 +903,7 @@ impl LauncherUi {
     /// The status column: one badge, with the check failure (if any) in its tooltip.
     fn table_status_cell(&self, ui: &mut Ui, entry: &AppEntry, status: &AppStatus, t: &Tokens) {
         // Installed is all it says: being up to date is the absence of an update.
-        let (text, tone) = if *status == AppStatus::UpToDate && entry.job.is_none() && entry.paused.is_none() {
+        let (text, tone) = if *status == AppStatus::UpToDate && entry.job.is_none() && entry.paused_download().is_none() {
             model::status_text(&AppStatus::Installed, self.caps.manage_apps)
         } else {
             model::entry_status_text(entry, status, self.caps.manage_apps)
@@ -1035,7 +1035,7 @@ impl LauncherUi {
     /// fit side by side (a language with long words). Mirrors [`Self::actions_in`]: a running or
     /// paused download shows its own controls instead.
     fn table_row_h(&self, ui: &Ui, entry: &AppEntry, status: &AppStatus) -> f32 {
-        let busy = entry.job.is_some() || (entry.paused.is_some() && self.caps.manage_apps);
+        let busy = entry.job.is_some() || (entry.paused_download().is_some() && self.caps.manage_apps);
         let stacked = !busy
             && UpdateLabels::of(self.primary_action(entry, status)).zip(open_labels(entry, status)).is_some_and(|(update, (open, _))| {
                 matches!(update_split(ui, Place::Row, main_width(ui, TABLE_ACTIONS_W), &open, &update), Some(widgets::Split::Stacked { .. }))
@@ -1192,7 +1192,7 @@ impl LauncherUi {
     /// button shows instead.
     fn paused_actions(&mut self, ui: &mut Ui, entry: &AppEntry, id: &str, status: &AppStatus, width: f32, links_in_menu: bool) -> bool {
         let gap = ui.spacing().item_spacing.x;
-        let Some(p) = entry.paused else { return false };
+        let Some(p) = entry.paused_download() else { return false };
         if !self.caps.manage_apps {
             return false;
         }
@@ -1212,10 +1212,18 @@ impl LauncherUi {
             fmt(tl!("{done} downloaded"), &[("done", &widgets::human_bytes(p.done))])
         };
         if resp.on_hover_text(tip).clicked() {
-            self.install_app(id);
+            if entry.cli_paused.is_some() {
+                self.act_command(Command::InstallCli { app: id.to_string() });
+            } else {
+                self.install_app(id);
+            }
         }
         if widgets::glyph_button(ui, widgets::Glyph::Close, tl!("Discard download")).clicked() {
-            self.act_command(Command::Cancel { app: id.to_string() });
+            self.act_command(if entry.cli_paused.is_some() {
+                Command::DiscardCli { app: id.to_string() }
+            } else {
+                Command::Cancel { app: id.to_string() }
+            });
         }
         self.menu(ui, entry, status, links_in_menu);
         true
@@ -1324,16 +1332,30 @@ impl LauncherUi {
             }
             // Only where Install would download: an up-to-date app would be reinstalled.
             let can_download_again =
-                manage && entry.ready && entry.paused.is_none() && matches!(status, AppStatus::Available | AppStatus::UpdateAvailable);
+                manage && entry.ready && entry.paused_download().is_none() && matches!(status, AppStatus::Available | AppStatus::UpdateAvailable);
             if can_download_again && ui.button(tl!("Download again")).clicked() {
-                self.act_command(Command::Cancel { app: id.clone() });
-                self.install_app(&id);
+                self.request_install(&id, true);
                 ui.close();
             }
             if manage && status.is_installed() {
                 self.menu_installed(ui, entry, status, reveal);
+            } else if manage && entry.app_managed {
+                ui.separator();
+                if ui.button(RichText::new(tl!("Uninstall…")).color(Tokens::get(ui.ctx()).bad)).clicked() {
+                    self.dialog = Some(Dialog::ConfirmUninstall(id.clone()));
+                    ui.close();
+                }
             }
-            if !manage {
+            if manage && entry.cli_managed {
+                ui.separator();
+                if ui.button(RichText::new(tl!("Uninstall command-line tool…")).color(Tokens::get(ui.ctx()).bad)).clicked() {
+                    self.dialog = Some(Dialog::ConfirmUninstallCli(id.clone()));
+                    ui.close();
+                }
+            }
+            if manage {
+                self.menu_cli(ui, entry);
+            } else {
                 self.menu_downloads(ui, entry);
             }
             // The drawer shows the links as buttons, so its menu leaves them out (but keeps Hide).
@@ -1352,6 +1374,27 @@ impl LauncherUi {
             self.menu_pin(ui, entry, &id);
             self.menu_hide(ui, entry, &id);
         });
+    }
+
+    fn menu_cli(&mut self, ui: &mut Ui, entry: &AppEntry) {
+        let id = entry.app.id;
+        let mut enabled = self.settings.cli_enabled(id);
+        let available = entry.has_cli(self.platform);
+        if !self.platform.is_some_and(|p| p.os == artcraft_launcher_core::Os::MacOs) || (!available && !enabled) {
+            return;
+        }
+        ui.separator();
+        if ui.checkbox(&mut enabled, tl!("Install command-line tool and keep it up to date")).changed() {
+            self.settings.set_cli_enabled(id, enabled);
+            if enabled && entry.can_install_cli(self.platform) {
+                self.act_command(Command::InstallCli { app: id.to_string() });
+            }
+            ui.close();
+        }
+        if enabled && entry.can_install_cli(self.platform) && ui.button(tl!("Install or repair command-line tool")).clicked() {
+            self.act_command(Command::InstallCli { app: id.to_string() });
+            ui.close();
+        }
     }
 
     /// Pin — or unpin — the app at the top of the list. Hidden apps are not offered Pin to top

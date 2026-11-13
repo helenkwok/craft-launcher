@@ -102,8 +102,6 @@
 	Only when I ask	手動で確認したときのみ
 	Automatically download and install updates	更新を自動でダウンロードしてインストール
 	Ask for permission once when updating all apps	すべてのアプリを更新するときは権限を一度だけ求める
-	Install each app's command-line tool and keep it up to date	各アプリのコマンドラインツールをインストールし、最新の状態に保つ
-	The tool is installed the next time an app is installed or updated, and only if its release has one.	ツールは、アプリを次にインストールまたは更新するときにインストールされます。そのリリースにツールが含まれている場合に限ります。
 	To use the tools in Terminal, add this line to your shell's start-up file:	ターミナルでツールを使うには、次の行をシェルの起動ファイルに追加してください:
 	Notify me when an installed app has an update	インストール済みアプリに更新があるときに通知する
 	Include pre-releases (betas and release candidates)	プレリリース（ベータ版とリリース候補）を含める
@@ -455,3 +453,80 @@ anicraft	Classic tweens with eight easing presets and custom ease curves, plus s
 	Unlock version?	バージョンの固定を解除しますか？
 	{app} is pinned to {version}. Follow the latest release instead?	{app} は {version} に固定されています。代わりに最新リリースを使用しますか？
 	Unlock	固定を解除
+	Install command-line tool and keep it up to date	コマンドラインツールをインストールして最新の状態に保つ
+	Install or repair command-line tool	コマンドラインツールをインストールまたは修復
+	Install command-line tools alongside apps by default	既定でアプリと一緒にコマンドラインツールをインストールする
+	Available tools are installed on the next app install or update. Change individual apps in their menus.	利用可能なツールは、次回のアプリのインストールまたは更新時にインストールされます。アプリごとの設定は各アプリのメニューで変更できます。
+	Uninstall command-line tool…	コマンドラインツールをアンインストール…
+	Uninstall command-line tool?	コマンドラインツールをアンインストールしますか？
+	Only the command-line tool will be removed. Your documents and settings stay.	コマンドラインツールのみが削除されます。ドキュメントと設定は保持されます。
+
+# CLI install/update/removal/recovery. Names, paths, versions are opaque identities; cli/error/restore/removed may contain localized nested messages.
+@msg	{name} command-line tool {version} was installed	{name} のコマンドラインツール {version} をインストールしました
+@msg	{name} command-line tool was removed	{name} のコマンドラインツールを削除しました
+@msg	{name} command-line tool couldn't be removed ({error}); its record was kept for retry.	{name} のコマンドラインツールを削除できませんでした（{error}）。再試行できるよう記録を保持しました。
+@msg	{name} was removed, but its command-line tool couldn't be removed ({error}); its record was kept for retry.	{name} は削除しましたが、そのコマンドラインツールは削除できませんでした（{error}）。再試行できるようツールの記録を保持しました。
+@msg	{removed}, but its removal record couldn't be saved ({error}); its record was kept for retry.	{removed}が、削除記録を保存できませんでした（{error}）。再試行できるよう記録を保持しました。
+@msg	Enable this app's command-line tool on macOS before installing it.	インストールする前に、macOS でこのアプリのコマンドラインツールを有効にしてください。
+@msg	Check for updates before installing the command-line tool.	コマンドラインツールをインストールする前に、更新を確認してください。
+@msg	Check for updates after changing the selected version before installing the command-line tool.	選択したバージョンを変更した後、コマンドラインツールをインストールする前に更新を確認してください。
+@msg	Install the selected app version before installing its matching command-line tool.	対応するコマンドラインツールをインストールする前に、選択したアプリのバージョンをインストールしてください。
+@msg	command-line tools aren't installed in portable mode	ポータブルモードではコマンドラインツールはインストールされません
+@msg	this release has no command-line tool; the installed tool stays at {version}	このリリースにはコマンドラインツールがありません。インストール済みのツールはバージョン {version} のまま保持されます
+@msg	this release has no command-line tool for this platform	このリリースにはこのプラットフォーム用のコマンドラインツールがありません
+@msg	command-line tool installation is only available on macOS	コマンドラインツールのインストールは macOS でのみ利用できます
+@msg	ArtCraft Launcher has no macOS signing team recorded for this app, so its command-line tool wasn't installed	ArtCraft Launcher にこのアプリの macOS 署名チームが記録されていないため、コマンドラインツールはインストールされませんでした
+@msg	no macOS signing team is configured for this app	このアプリの macOS 署名チームが設定されていません
+@msg	no valid macOS signing team is configured, so the command-line tool wasn't installed	有効な macOS 署名チームが設定されていないため、コマンドラインツールはインストールされませんでした
+@msg	{name}'s command-line tool download does not match the advertised version {version}.	ダウンロードした {name} のコマンドラインツールが、公開されているバージョン {version} と一致しません。
+@msg	{path} already exists and wasn't made by ArtCraft Launcher, so the command-line tool wasn't installed	{path} はすでに存在し、ArtCraft Launcher が作成したものではないため、コマンドラインツールはインストールされませんでした
+@msg	{path} is a link, so the command-line tool wasn't installed	{path} はリンクのため、コマンドラインツールはインストールされませんでした
+@msg	{path} isn't a folder, so the command-line tool wasn't installed	{path} はフォルダーではないため、コマンドラインツールはインストールされませんでした
+@msg	the download doesn't contain {name}	ダウンロードに {name} が含まれていません
+@msg	couldn't read the command-line tool's unusual path	コマンドラインツールの特殊なパスを読み取れませんでした
+@msg	couldn't read the command-line tool's version ({error})	コマンドラインツールのバージョンを読み取れませんでした（{error}）
+@msg	the command-line tool didn't report a recognizable version	コマンドラインツールから認識できるバージョンが報告されませんでした
+@msg	the requested command-line tool version isn't valid	指定されたコマンドラインツールのバージョンは無効です
+@msg	the command-line tool reports version {actual}, but this release requires {expected}	コマンドラインツールはバージョン {actual} を報告していますが、このリリースには {expected} が必要です
+@msg	couldn't move the old command-line tool aside ({error})	古いコマンドラインツールを退避できませんでした（{error}）
+@msg	couldn't put the command-line tool in place ({error})	コマンドラインツールを所定の場所に配置できませんでした（{error}）
+@msg	couldn't save the command-line tool's record ({error})	コマンドラインツールの記録を保存できませんでした（{error}）
+@msg	couldn't remove the new tool ({error})	新しいツールを削除できませんでした（{error}）
+@msg	couldn't restore the old tool ({error})	古いツールを復元できませんでした（{error}）
+@msg	couldn't remove the new link ({error})	新しいリンクを削除できませんでした（{error}）
+@msg	couldn't restore the old link ({error})	古いリンクを復元できませんでした（{error}）
+@msg	couldn't read the command-line tool ZIP ({error})	コマンドラインツールの ZIP を読み取れませんでした（{error}）
+@msg	the command-line tool ZIP contains duplicate paths	コマンドラインツールの ZIP に重複するパスが含まれています
+@msg	the command-line tool ZIP contains too many entries	コマンドラインツールの ZIP に含まれる項目が多すぎます
+@msg	the command-line tool ZIP exceeds the maximum unpacked size	コマンドラインツールの ZIP の展開後のサイズが上限を超えています
+@msg	the command-line tool ZIP contains an unsafe path	コマンドラインツールの ZIP に安全でないパスが含まれています
+@msg	the command-line tool ZIP contains an unsafe path, link or special file	コマンドラインツールの ZIP に安全でないパス、リンク、または特殊ファイルが含まれています
+@msg	the command-line tool ZIP has a nonempty directory entry	コマンドラインツールの ZIP に空でないディレクトリー項目が含まれています
+@msg	the command-line tool ZIP has an unexpected unpacked size	コマンドラインツールの ZIP の展開後のサイズが想定と異なります
+@msg	couldn't check the tool's unusual path, so it wasn't installed	ツールの特殊なパスを確認できなかったため、インストールされませんでした
+@msg	macOS verification of the command-line tool (signature integrity) did not succeed ({error}), so it wasn't installed	コマンドラインツールの macOS 検証（署名の整合性）に失敗したため（{error}）、インストールされませんでした
+@msg	macOS verification of the command-line tool (developer identity) did not succeed ({error}), so it wasn't installed	コマンドラインツールの macOS 検証（開発者の身元）に失敗したため（{error}）、インストールされませんでした
+@msg	macOS verification of the command-line tool (notarization) did not succeed ({error}), so it wasn't installed	コマンドラインツールの macOS 検証（公証）に失敗したため（{error}）、インストールされませんでした
+@msg	{path} already exists and doesn't point to this command-line tool, so it wasn't replaced	{path} はすでに存在し、このコマンドラインツールを指していないため、置き換えませんでした
+@msg	the command-line tool's removal record doesn't match this app, so nothing was removed	コマンドラインツールの削除記録がこのアプリと一致しないため、何も削除しませんでした
+@msg	{path} isn't a real folder, so nothing was removed through it	{path} は実際のフォルダーではないため、このパスを介した削除は行いませんでした
+@msg	couldn't inspect {path} ({error})	{path} を調べられませんでした（{error}）
+@msg	couldn't create {path} ({error})	{path} を作成できませんでした（{error}）
+@msg	couldn't create a staging folder in {path} ({error})	{path} に準備用フォルダーを作成できませんでした（{error}）
+@msg	couldn't make {name} runnable ({error})	{name} を実行可能にできませんでした（{error}）
+@msg	couldn't link {path} ({error})	リンク {path} を作成できませんでした（{error}）
+@msg	couldn't remove {path} ({error})	{path} を削除できませんでした（{error}）
+@msg	{error}; {restore}; recovery files were kept at {path}	{error}。{restore}。復旧用ファイルを {path} に保持しました
+@msg	couldn't discard {path} ({error})	{path} を破棄できませんでした（{error}）
+@msg	Couldn't inspect {path} ({error}); its removal record was kept for retry.	{path} を調べられませんでした（{error}）。再試行できるよう削除記録を保持しました。
+@msg	{path} is still present but couldn't be identified as {name}; it was left alone and its removal record was kept for retry.	{path} はまだ存在していますが、{name} と識別できませんでした。変更せず、再試行できるよう削除記録を保持しました。
+@msg	{name} installed: {version} ({cli})	{name} をインストールしました: {version}（{cli}）
+@msg	{name} installed: {version} (its command-line tool wasn't installed: {error})	{name} をインストールしました: {version}（コマンドラインツールはインストールされませんでした: {error}）
+@msg	{name} installed: {version} (this release publishes no checksum, so only its size was checked) ({cli})	{name} をインストールしました: {version}（このリリースはチェックサムを公開していないため、サイズのみ確認しました）（{cli}）
+@msg	{name} installed: {version} (this release publishes no checksum, so only its size was checked) (its command-line tool wasn't installed: {error})	{name} をインストールしました: {version}（このリリースはチェックサムを公開していないため、サイズのみ確認しました）（コマンドラインツールはインストールされませんでした: {error}）
+@msg	{name} updated to {version} ({cli})	{name} を {version} に更新しました（{cli}）
+@msg	{name} updated to {version} (its command-line tool wasn't installed: {error})	{name} を {version} に更新しました（コマンドラインツールはインストールされませんでした: {error}）
+@msg	{name} updated to {version} (this release publishes no checksum, so only its size was checked) ({cli})	{name} を {version} に更新しました（このリリースはチェックサムを公開していないため、サイズのみ確認しました）（{cli}）
+@msg	{name} updated to {version} (this release publishes no checksum, so only its size was checked) (its command-line tool wasn't installed: {error})	{name} を {version} に更新しました（このリリースはチェックサムを公開していないため、サイズのみ確認しました）（コマンドラインツールはインストールされませんでした: {error}）
+@msg	{name}'s download does not match the advertised version {version}.	{name} のダウンロードが、公開されているバージョン {version} と一致しません。
+@msg	{name}'s download URL filename does not match selected asset {asset}.	{name} のダウンロード URL のファイル名が、選択したアセット {asset} と一致しません。

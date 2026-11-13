@@ -32,10 +32,13 @@ impl LauncherUi {
         let mut close = false;
         let response = match &mut dialog {
             Dialog::Notes(id) => modal.show(ctx, |ui| close = self.notes_dialog(ui, id)),
-            Dialog::ConfirmUninstall(id) => modal.show(ctx, |ui| close = self.uninstall_dialog(ui, id)),
+            Dialog::ConfirmUninstall(id) => modal.show(ctx, |ui| close = self.uninstall_dialog(ui, id, false)),
+            Dialog::ConfirmUninstallCli(id) => modal.show(ctx, |ui| close = self.uninstall_dialog(ui, id, true)),
             Dialog::UnlockVersion { app, tag } => modal.show(ctx, |ui| close = self.unlock_version_dialog(ui, app, tag)),
-            Dialog::Install { app, folder } => modal.show(ctx, |ui| close = self.install_dialog(ui, app, folder, host)),
-            Dialog::Replace { app, path } => modal.show(ctx, |ui| close = self.replace_dialog(ui, app, path)),
+            Dialog::Install { app, folder, download_again } => {
+                modal.show(ctx, |ui| close = self.install_dialog(ui, app, folder, *download_again, host))
+            }
+            Dialog::Replace { app, path, download_again } => modal.show(ctx, |ui| close = self.replace_dialog(ui, app, path, *download_again)),
             Dialog::Settings => modal.show(ctx, |ui| close = self.settings_dialog(ui, host)),
             Dialog::LauncherUpdate(r) => modal.show(ctx, |ui| close = self.launcher_update_dialog(ui, r)),
             Dialog::Versions(id) => modal.show(ctx, |ui| close = self.version_dialog(ui, id)),
@@ -199,23 +202,29 @@ impl LauncherUi {
         close
     }
 
-    /// Confirms removing an installed app and returns `true` when the dialog should close, including
-    /// when the app entry has disappeared. It queues `Uninstall` only on confirmation and explains
-    /// the removal differently for each install source.
-    fn uninstall_dialog(&mut self, ui: &mut egui::Ui, id: &str) -> bool {
+    /// The confirmed target stays fixed even if detection changes while this dialog is open.
+    fn uninstall_dialog(&mut self, ui: &mut egui::Ui, id: &str, cli_only: bool) -> bool {
         let Some(entry) = self.entry(id).cloned() else { return true };
         let t = Tokens::get(ui.ctx());
         ui.set_width(420.0);
-        Self::title(ui, crate::icons::app(id), &fmt(tl!("Uninstall {name}?"), &[("name", entry.app.name)]), "");
-        let how = match entry.installed.as_ref().map(|i| i.source) {
-            Some(artcraft_launcher_core::InstallSource::MacApp) => tl!("The app will be moved to the Trash. Your documents and settings stay."),
-            Some(artcraft_launcher_core::InstallSource::Msi) => {
+        let title =
+            if cli_only { tl!("Uninstall command-line tool?").to_string() } else { fmt(tl!("Uninstall {name}?"), &[("name", entry.app.name)]) };
+        Self::title(ui, crate::icons::app(id), &title, if cli_only { entry.app.name } else { "" });
+        let how = match (cli_only, entry.installed.as_ref().map(|i| i.source)) {
+            (true, _) => tl!("Only the command-line tool will be removed. Your documents and settings stay."),
+            (false, Some(artcraft_launcher_core::InstallSource::MacApp)) => {
+                tl!("The app will be moved to the Trash. Your documents and settings stay.")
+            }
+            (false, Some(artcraft_launcher_core::InstallSource::Msi)) => {
                 tl!("Windows will remove it like any installed program. Your documents and settings stay.")
             }
-            Some(
-                artcraft_launcher_core::InstallSource::Deb
-                | artcraft_launcher_core::InstallSource::Rpm
-                | artcraft_launcher_core::InstallSource::Pacman,
+            (
+                false,
+                Some(
+                    artcraft_launcher_core::InstallSource::Deb
+                    | artcraft_launcher_core::InstallSource::Rpm
+                    | artcraft_launcher_core::InstallSource::Pacman,
+                ),
             ) => tl!("Your system's package manager will remove it, and may ask for your password. Your documents and settings stay."),
             _ => tl!("The app will be removed. Your documents and settings stay."),
         };
@@ -226,7 +235,14 @@ impl LauncherUi {
         ui.horizontal(|ui| {
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if widgets::button(ui, tl!("Uninstall"), Kind::Danger, 110.0).clicked() {
-                    self.act_command(Command::Uninstall { app: id.to_string() });
+                    if cli_only {
+                        self.settings.set_cli_enabled(id, false);
+                    }
+                    self.act_command(if cli_only {
+                        Command::UninstallCli { app: id.to_string() }
+                    } else {
+                        Command::Uninstall { app: id.to_string() }
+                    });
                     close = true;
                 }
                 if widgets::button(ui, tl!("Cancel"), Kind::Secondary, 90.0).clicked() {
@@ -275,7 +291,7 @@ impl LauncherUi {
     /// Warns that `path` already exists and asks whether to replace it, returning `true` when the
     /// dialog should close, including when the app entry is gone. `Replace` is queued at the action
     /// boundary, not sent inline.
-    fn replace_dialog(&mut self, ui: &mut egui::Ui, id: &str, path: &str) -> bool {
+    fn replace_dialog(&mut self, ui: &mut egui::Ui, id: &str, path: &str, download_again: bool) -> bool {
         let Some(app) = self.entry(id).map(|e| e.app) else { return true };
         let t = Tokens::get(ui.ctx());
         ui.set_width(440.0f32.min(ui.ctx().content_rect().width() - 80.0));
@@ -289,7 +305,11 @@ impl LauncherUi {
         ui.horizontal(|ui| {
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if widgets::button(ui, tl!("Replace"), Kind::Danger, 110.0).clicked() {
-                    self.act_command(Command::Replace { app: id.to_string(), path: path.to_string() });
+                    self.act_command(if download_again {
+                        Command::DownloadAgain { app: id.to_string(), path: Some(path.to_string()) }
+                    } else {
+                        Command::Replace { app: id.to_string(), path: path.to_string() }
+                    });
                     close = true;
                 }
                 if widgets::button(ui, tl!("Cancel"), Kind::Secondary, 90.0).clicked() {
@@ -304,7 +324,7 @@ impl LauncherUi {
     /// close, including when the app entry is gone. An empty field removes the per-app override, a
     /// non-empty one persists it, and any changed configuration is sent before the install is queued. The path
     /// itself is not validated here.
-    fn install_dialog(&mut self, ui: &mut egui::Ui, id: &str, folder: &mut String, host: &mut dyn Host) -> bool {
+    fn install_dialog(&mut self, ui: &mut egui::Ui, id: &str, folder: &mut String, download_again: bool, host: &mut dyn Host) -> bool {
         let Some(app) = self.entry(id).map(|e| e.app) else { return true };
         ui.set_width(440.0f32.min(ui.ctx().content_rect().width() - 80.0));
         Self::title(ui, None, app.name, tl!("Install folder"));
@@ -323,7 +343,11 @@ impl LauncherUi {
                     self.settings.install_locations.per_app.insert(id.to_string(), folder.clone());
                 }
                 self.configure();
-                self.act_command(Command::Install { app: id.to_string() });
+                self.act_command(if download_again {
+                    Command::DownloadAgain { app: id.to_string(), path: None }
+                } else {
+                    Command::Install { app: id.to_string() }
+                });
                 close = true;
             }
             close |= widgets::button(ui, tl!("Cancel"), Kind::Secondary, 90.0).clicked();

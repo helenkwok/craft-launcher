@@ -88,8 +88,8 @@ pub fn tn(n: u64, one: &str, other: &str) -> String {
 }
 
 /// Translate a status or error message for display (see the module docs). Unknown messages, and
-/// the parts of a message a template's placeholders stand for (names, versions, reasons), stay
-/// as they are.
+/// opaque placeholder values (names, versions, paths), stay as they are. Explicit message slots
+/// translate known nested messages; unknown external reasons remain literal.
 pub fn message(lang: Lang, s: &str) -> String {
     lang.catalog().message(s).unwrap_or_else(|| s.to_string())
 }

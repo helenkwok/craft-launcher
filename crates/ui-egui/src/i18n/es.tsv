@@ -100,8 +100,6 @@
 	Only when I ask	Solo cuando lo pida
 	Automatically download and install updates	Descargar e instalar actualizaciones automáticamente
 	Ask for permission once when updating all apps	Pedir permiso una sola vez al actualizar todas las aplicaciones
-	Install each app's command-line tool and keep it up to date	Instalar la herramienta de línea de comandos de cada aplicación y mantenerla actualizada
-	The tool is installed the next time an app is installed or updated, and only if its release has one.	La herramienta se instala la próxima vez que se instale o actualice una aplicación, y solo si su versión incluye una.
 	To use the tools in Terminal, add this line to your shell's start-up file:	Para usar las herramientas en Terminal, añade esta línea al archivo de inicio de tu shell:
 	Notify me when an installed app has an update	Avisarme cuando una aplicación instalada tenga una actualización
 	Include pre-releases (betas and release candidates)	Incluir versiones preliminares (betas y versiones candidatas)
@@ -433,3 +431,80 @@ anicraft	Classic tweens with eight easing presets and custom ease curves, plus s
 	Unlock version?	¿Desbloquear la versión?
 	{app} is pinned to {version}. Follow the latest release instead?	{app} está fijado en la versión {version}. ¿Usar la versión más reciente?
 	Unlock	Desbloquear
+	Install command-line tool and keep it up to date	Instalar la herramienta de línea de comandos y mantenerla actualizada
+	Install or repair command-line tool	Instalar o reparar la herramienta de línea de comandos
+	Install command-line tools alongside apps by default	Instalar herramientas de línea de comandos junto con las aplicaciones de forma predeterminada
+	Available tools are installed on the next app install or update. Change individual apps in their menus.	Las herramientas disponibles se instalarán en la próxima instalación o actualización de la aplicación. Cambia la opción de cada aplicación en su menú.
+	Uninstall command-line tool…	Desinstalar la herramienta de línea de comandos…
+	Uninstall command-line tool?	¿Desinstalar la herramienta de línea de comandos?
+	Only the command-line tool will be removed. Your documents and settings stay.	Solo se eliminará la herramienta de línea de comandos. Tus documentos y ajustes se conservarán.
+
+# CLI install/update/removal/recovery. Names, paths, versions are opaque identities; cli/error/restore/removed may contain localized nested messages.
+@msg	{name} command-line tool {version} was installed	Se ha instalado la herramienta de línea de comandos de {name} en su versión {version}
+@msg	{name} command-line tool was removed	Se ha eliminado la herramienta de línea de comandos de {name}
+@msg	{name} command-line tool couldn't be removed ({error}); its record was kept for retry.	No se pudo eliminar la herramienta de línea de comandos de {name} ({error}); se conservó su registro para volver a intentarlo.
+@msg	{name} was removed, but its command-line tool couldn't be removed ({error}); its record was kept for retry.	Se eliminó {name}, pero no se pudo eliminar su herramienta de línea de comandos ({error}); se conservó el registro de la herramienta para volver a intentarlo.
+@msg	{removed}, but its removal record couldn't be saved ({error}); its record was kept for retry.	{removed}, pero no se pudo guardar su registro de eliminación ({error}); se conservó su registro para volver a intentarlo.
+@msg	Enable this app's command-line tool on macOS before installing it.	Activa la herramienta de línea de comandos de esta aplicación en macOS antes de instalarla.
+@msg	Check for updates before installing the command-line tool.	Busca actualizaciones antes de instalar la herramienta de línea de comandos.
+@msg	Check for updates after changing the selected version before installing the command-line tool.	Después de cambiar la versión seleccionada, busca actualizaciones antes de instalar la herramienta de línea de comandos.
+@msg	Install the selected app version before installing its matching command-line tool.	Instala la versión seleccionada de la aplicación antes de instalar la herramienta de línea de comandos correspondiente.
+@msg	command-line tools aren't installed in portable mode	las herramientas de línea de comandos no se instalan en modo portátil
+@msg	this release has no command-line tool; the installed tool stays at {version}	esta versión no tiene herramienta de línea de comandos; la herramienta instalada se mantiene en la versión {version}
+@msg	this release has no command-line tool for this platform	esta versión no tiene herramienta de línea de comandos para esta plataforma
+@msg	command-line tool installation is only available on macOS	la instalación de la herramienta de línea de comandos solo está disponible en macOS
+@msg	ArtCraft Launcher has no macOS signing team recorded for this app, so its command-line tool wasn't installed	ArtCraft Launcher no tiene registrado un equipo de firma de macOS para esta aplicación, por lo que su herramienta de línea de comandos no se instaló
+@msg	no macOS signing team is configured for this app	no hay ningún equipo de firma de macOS configurado para esta aplicación
+@msg	no valid macOS signing team is configured, so the command-line tool wasn't installed	no hay ningún equipo de firma de macOS válido configurado, por lo que la herramienta de línea de comandos no se instaló
+@msg	{name}'s command-line tool download does not match the advertised version {version}.	la descarga de la herramienta de línea de comandos de {name} no coincide con la versión anunciada {version}.
+@msg	{path} already exists and wasn't made by ArtCraft Launcher, so the command-line tool wasn't installed	{path} ya existe y no fue creado por ArtCraft Launcher, por lo que la herramienta de línea de comandos no se instaló
+@msg	{path} is a link, so the command-line tool wasn't installed	{path} es un enlace, por lo que la herramienta de línea de comandos no se instaló
+@msg	{path} isn't a folder, so the command-line tool wasn't installed	{path} no es una carpeta, por lo que la herramienta de línea de comandos no se instaló
+@msg	the download doesn't contain {name}	la descarga no contiene {name}
+@msg	couldn't read the command-line tool's unusual path	no se pudo leer la ruta inusual de la herramienta de línea de comandos
+@msg	couldn't read the command-line tool's version ({error})	no se pudo leer la versión de la herramienta de línea de comandos ({error})
+@msg	the command-line tool didn't report a recognizable version	la herramienta de línea de comandos no indicó una versión reconocible
+@msg	the requested command-line tool version isn't valid	la versión solicitada de la herramienta de línea de comandos no es válida
+@msg	the command-line tool reports version {actual}, but this release requires {expected}	la herramienta de línea de comandos indica la versión {actual}, pero esta versión de la aplicación requiere {expected}
+@msg	couldn't move the old command-line tool aside ({error})	no se pudo apartar la herramienta de línea de comandos anterior ({error})
+@msg	couldn't put the command-line tool in place ({error})	no se pudo colocar la herramienta de línea de comandos en su ubicación ({error})
+@msg	couldn't save the command-line tool's record ({error})	no se pudo guardar el registro de la herramienta de línea de comandos ({error})
+@msg	couldn't remove the new tool ({error})	no se pudo eliminar la herramienta nueva ({error})
+@msg	couldn't restore the old tool ({error})	no se pudo restaurar la herramienta anterior ({error})
+@msg	couldn't remove the new link ({error})	no se pudo eliminar el enlace nuevo ({error})
+@msg	couldn't restore the old link ({error})	no se pudo restaurar el enlace anterior ({error})
+@msg	couldn't read the command-line tool ZIP ({error})	no se pudo leer el archivo ZIP de la herramienta de línea de comandos ({error})
+@msg	the command-line tool ZIP contains duplicate paths	el archivo ZIP de la herramienta de línea de comandos contiene rutas duplicadas
+@msg	the command-line tool ZIP contains too many entries	el archivo ZIP de la herramienta de línea de comandos contiene demasiadas entradas
+@msg	the command-line tool ZIP exceeds the maximum unpacked size	el archivo ZIP de la herramienta de línea de comandos supera el tamaño máximo descomprimido
+@msg	the command-line tool ZIP contains an unsafe path	el archivo ZIP de la herramienta de línea de comandos contiene una ruta insegura
+@msg	the command-line tool ZIP contains an unsafe path, link or special file	el archivo ZIP de la herramienta de línea de comandos contiene una ruta insegura, un enlace o un archivo especial
+@msg	the command-line tool ZIP has a nonempty directory entry	el archivo ZIP de la herramienta de línea de comandos contiene una entrada de directorio no vacía
+@msg	the command-line tool ZIP has an unexpected unpacked size	el archivo ZIP de la herramienta de línea de comandos tiene un tamaño descomprimido inesperado
+@msg	couldn't check the tool's unusual path, so it wasn't installed	no se pudo comprobar la ruta inusual de la herramienta, por lo que no se instaló
+@msg	macOS verification of the command-line tool (signature integrity) did not succeed ({error}), so it wasn't installed	la verificación de macOS de la herramienta de línea de comandos (integridad de la firma) falló ({error}), por lo que no se instaló
+@msg	macOS verification of the command-line tool (developer identity) did not succeed ({error}), so it wasn't installed	la verificación de macOS de la herramienta de línea de comandos (identidad del desarrollador) falló ({error}), por lo que no se instaló
+@msg	macOS verification of the command-line tool (notarization) did not succeed ({error}), so it wasn't installed	la verificación de macOS de la herramienta de línea de comandos (notarización) falló ({error}), por lo que no se instaló
+@msg	{path} already exists and doesn't point to this command-line tool, so it wasn't replaced	{path} ya existe y no apunta a esta herramienta de línea de comandos, por lo que no se reemplazó
+@msg	the command-line tool's removal record doesn't match this app, so nothing was removed	el registro de eliminación de la herramienta de línea de comandos no corresponde a esta aplicación, por lo que no se eliminó nada
+@msg	{path} isn't a real folder, so nothing was removed through it	{path} no es una carpeta real, por lo que no se eliminó nada a través de ella
+@msg	couldn't inspect {path} ({error})	no se pudo inspeccionar {path} ({error})
+@msg	couldn't create {path} ({error})	no se pudo crear {path} ({error})
+@msg	couldn't create a staging folder in {path} ({error})	no se pudo crear una carpeta de preparación en {path} ({error})
+@msg	couldn't make {name} runnable ({error})	no se pudo dar permiso de ejecución a {name} ({error})
+@msg	couldn't link {path} ({error})	no se pudo crear el enlace {path} ({error})
+@msg	couldn't remove {path} ({error})	no se pudo eliminar {path} ({error})
+@msg	{error}; {restore}; recovery files were kept at {path}	{error}; {restore}; se conservaron los archivos de recuperación en {path}
+@msg	couldn't discard {path} ({error})	no se pudo descartar {path} ({error})
+@msg	Couldn't inspect {path} ({error}); its removal record was kept for retry.	No se pudo inspeccionar {path} ({error}); se conservó su registro de eliminación para volver a intentarlo.
+@msg	{path} is still present but couldn't be identified as {name}; it was left alone and its removal record was kept for retry.	{path} sigue presente, pero no se pudo identificar como {name}; se dejó intacto y se conservó su registro de eliminación para volver a intentarlo.
+@msg	{name} installed: {version} ({cli})	{name} instalada: {version} ({cli})
+@msg	{name} installed: {version} (its command-line tool wasn't installed: {error})	{name} instalada: {version} (su herramienta de línea de comandos no se instaló: {error})
+@msg	{name} installed: {version} (this release publishes no checksum, so only its size was checked) ({cli})	{name} instalada: {version} (esta versión no publica la suma de comprobación, así que solo se comprobó su tamaño) ({cli})
+@msg	{name} installed: {version} (this release publishes no checksum, so only its size was checked) (its command-line tool wasn't installed: {error})	{name} instalada: {version} (esta versión no publica la suma de comprobación, así que solo se comprobó su tamaño) (su herramienta de línea de comandos no se instaló: {error})
+@msg	{name} updated to {version} ({cli})	{name} actualizada a {version} ({cli})
+@msg	{name} updated to {version} (its command-line tool wasn't installed: {error})	{name} actualizada a {version} (su herramienta de línea de comandos no se instaló: {error})
+@msg	{name} updated to {version} (this release publishes no checksum, so only its size was checked) ({cli})	{name} actualizada a {version} (esta versión no publica la suma de comprobación, así que solo se comprobó su tamaño) ({cli})
+@msg	{name} updated to {version} (this release publishes no checksum, so only its size was checked) (its command-line tool wasn't installed: {error})	{name} actualizada a {version} (esta versión no publica la suma de comprobación, así que solo se comprobó su tamaño) (su herramienta de línea de comandos no se instaló: {error})
+@msg	{name}'s download does not match the advertised version {version}.	la descarga de {name} no coincide con la versión anunciada {version}.
+@msg	{name}'s download URL filename does not match selected asset {asset}.	el nombre de archivo en la URL de descarga de {name} no coincide con el archivo seleccionado {asset}.

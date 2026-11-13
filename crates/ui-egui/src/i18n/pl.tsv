@@ -101,8 +101,6 @@
 	Only when I ask	Tylko kiedy zapytam
 	Automatically download and install updates	Automatycznie pobieraj i instaluj aktualizacje
 	Ask for permission once when updating all apps	Pytaj o uprawnienia tylko raz przy aktualizacji wszystkich aplikacji
-	Install each app's command-line tool and keep it up to date	Instaluj narzędzie wiersza poleceń każdej aplikacji i utrzymuj je w aktualnej wersji
-	The tool is installed the next time an app is installed or updated, and only if its release has one.	Narzędzie zostanie zainstalowane przy następnej instalacji lub aktualizacji aplikacji, o ile jej wydanie je zawiera.
 	To use the tools in Terminal, add this line to your shell's start-up file:	Aby używać narzędzi w Terminalu, dodaj ten wiersz do pliku startowego powłoki:
 	Notify me when an installed app has an update	Powiadom mnie o aktualizacjach dla zainstalowanych aplikacji
 	Include pre-releases (betas and release candidates)	Uwzględnij wersje przedpremierowe (beta i wersje kandydujące)
@@ -454,3 +452,80 @@ anicraft	Classic tweens with eight easing presets and custom ease curves, plus s
 	Unlock version?	Odblokować wersję?
 	{app} is pinned to {version}. Follow the latest release instead?	Aplikacja {app} jest przypięta do wersji {version}. Zamiast tego śledzić najnowsze wydanie?
 	Unlock	Odblokuj
+	Install command-line tool and keep it up to date	Instaluj narzędzie wiersza poleceń i aktualizuj je
+	Install or repair command-line tool	Zainstaluj lub napraw narzędzie wiersza poleceń
+	Install command-line tools alongside apps by default	Domyślnie instaluj narzędzia wiersza poleceń wraz z aplikacjami
+	Available tools are installed on the next app install or update. Change individual apps in their menus.	Dostępne narzędzia zostaną zainstalowane podczas następnej instalacji lub aktualizacji aplikacji. Ustawienia poszczególnych aplikacji można zmienić w ich menu.
+	Uninstall command-line tool…	Odinstaluj narzędzie wiersza poleceń…
+	Uninstall command-line tool?	Odinstalować narzędzie wiersza poleceń?
+	Only the command-line tool will be removed. Your documents and settings stay.	Usunięte zostanie tylko narzędzie wiersza poleceń. Dokumenty i ustawienia zostaną zachowane.
+
+# CLI install, update, removal and recovery messages. Names, versions and paths stay literal; nested known errors may be translated.
+@msg	{name} command-line tool {version} was installed	{name}: narzędzie wiersza poleceń {version} zostało zainstalowane
+@msg	{name} command-line tool was removed	{name}: narzędzie wiersza poleceń zostało usunięte
+@msg	{name} command-line tool couldn't be removed ({error}); its record was kept for retry.	{name}: nie udało się usunąć narzędzia wiersza poleceń ({error}); jego zapis zachowano do ponownej próby.
+@msg	{name} was removed, but its command-line tool couldn't be removed ({error}); its record was kept for retry.	Usunięto {name}, ale nie udało się usunąć narzędzia wiersza poleceń ({error}); jego zapis zachowano do ponownej próby.
+@msg	{removed}, but its removal record couldn't be saved ({error}); its record was kept for retry.	{removed}, ale nie udało się zapisać informacji o usunięciu ({error}); zapis zachowano do ponownej próby.
+@msg	Enable this app's command-line tool on macOS before installing it.	Przed instalacją włącz narzędzie wiersza poleceń tej aplikacji w macOS.
+@msg	Check for updates before installing the command-line tool.	Sprawdź aktualizacje przed instalacją narzędzia wiersza poleceń.
+@msg	Check for updates after changing the selected version before installing the command-line tool.	Po zmianie wybranej wersji sprawdź aktualizacje przed instalacją narzędzia wiersza poleceń.
+@msg	Install the selected app version before installing its matching command-line tool.	Zainstaluj wybraną wersję aplikacji przed instalacją pasującego narzędzia wiersza poleceń.
+@msg	command-line tools aren't installed in portable mode	w trybie przenośnym narzędzia wiersza poleceń nie są instalowane
+@msg	this release has no command-line tool; the installed tool stays at {version}	ta wersja nie zawiera narzędzia wiersza poleceń; zainstalowane narzędzie pozostaje w wersji {version}
+@msg	this release has no command-line tool for this platform	ta wersja nie zawiera narzędzia wiersza poleceń dla tej platformy
+@msg	command-line tool installation is only available on macOS	instalacja narzędzia wiersza poleceń jest dostępna tylko w macOS
+@msg	ArtCraft Launcher has no macOS signing team recorded for this app, so its command-line tool wasn't installed	ArtCraft Launcher nie ma zapisanego zespołu podpisującego macOS dla tej aplikacji, więc jej narzędzie wiersza poleceń nie zostało zainstalowane
+@msg	no macOS signing team is configured for this app	dla tej aplikacji nie skonfigurowano zespołu podpisującego macOS
+@msg	no valid macOS signing team is configured, so the command-line tool wasn't installed	nie skonfigurowano prawidłowego zespołu podpisującego macOS, więc narzędzie wiersza poleceń nie zostało zainstalowane
+@msg	{name}'s command-line tool download does not match the advertised version {version}.	Pobrane narzędzie wiersza poleceń aplikacji {name} nie odpowiada podanej wersji {version}.
+@msg	{path} already exists and wasn't made by ArtCraft Launcher, so the command-line tool wasn't installed	{path} już istnieje i nie zostało utworzone przez ArtCraft Launcher, więc narzędzie wiersza poleceń nie zostało zainstalowane
+@msg	{path} is a link, so the command-line tool wasn't installed	{path} jest dowiązaniem, więc narzędzie wiersza poleceń nie zostało zainstalowane
+@msg	{path} isn't a folder, so the command-line tool wasn't installed	{path} nie jest folderem, więc narzędzie wiersza poleceń nie zostało zainstalowane
+@msg	the download doesn't contain {name}	pobrany plik nie zawiera {name}
+@msg	couldn't read the command-line tool's unusual path	nie udało się odczytać nietypowej ścieżki narzędzia wiersza poleceń
+@msg	couldn't read the command-line tool's version ({error})	nie udało się odczytać wersji narzędzia wiersza poleceń ({error})
+@msg	the command-line tool didn't report a recognizable version	narzędzie wiersza poleceń nie podało rozpoznawalnej wersji
+@msg	the requested command-line tool version isn't valid	żądana wersja narzędzia wiersza poleceń jest nieprawidłowa
+@msg	the command-line tool reports version {actual}, but this release requires {expected}	narzędzie wiersza poleceń zgłasza wersję {actual}, ale ta wersja aplikacji wymaga {expected}
+@msg	couldn't move the old command-line tool aside ({error})	nie udało się odsunąć starego narzędzia wiersza poleceń ({error})
+@msg	couldn't put the command-line tool in place ({error})	nie udało się umieścić narzędzia wiersza poleceń ({error})
+@msg	couldn't save the command-line tool's record ({error})	nie udało się zapisać informacji o narzędziu wiersza poleceń ({error})
+@msg	couldn't remove the new tool ({error})	nie udało się usunąć nowego narzędzia ({error})
+@msg	couldn't restore the old tool ({error})	nie udało się przywrócić starego narzędzia ({error})
+@msg	couldn't remove the new link ({error})	nie udało się usunąć nowego dowiązania ({error})
+@msg	couldn't restore the old link ({error})	nie udało się przywrócić starego dowiązania ({error})
+@msg	couldn't read the command-line tool ZIP ({error})	nie udało się odczytać archiwum ZIP narzędzia wiersza poleceń ({error})
+@msg	the command-line tool ZIP contains duplicate paths	archiwum ZIP narzędzia wiersza poleceń zawiera powtarzające się ścieżki
+@msg	the command-line tool ZIP contains too many entries	archiwum ZIP narzędzia wiersza poleceń zawiera zbyt wiele wpisów
+@msg	the command-line tool ZIP exceeds the maximum unpacked size	archiwum ZIP narzędzia wiersza poleceń przekracza maksymalny rozmiar po rozpakowaniu
+@msg	the command-line tool ZIP contains an unsafe path	archiwum ZIP narzędzia wiersza poleceń zawiera niebezpieczną ścieżkę
+@msg	the command-line tool ZIP contains an unsafe path, link or special file	archiwum ZIP narzędzia wiersza poleceń zawiera niebezpieczną ścieżkę, dowiązanie lub plik specjalny
+@msg	the command-line tool ZIP has a nonempty directory entry	archiwum ZIP narzędzia wiersza poleceń zawiera niepusty wpis katalogu
+@msg	the command-line tool ZIP has an unexpected unpacked size	archiwum ZIP narzędzia wiersza poleceń ma nieoczekiwany rozmiar po rozpakowaniu
+@msg	couldn't check the tool's unusual path, so it wasn't installed	nie udało się sprawdzić nietypowej ścieżki narzędzia, więc nie zostało zainstalowane
+@msg	macOS verification of the command-line tool (signature integrity) did not succeed ({error}), so it wasn't installed	weryfikacja narzędzia wiersza poleceń w macOS (integralność podpisu) nie powiodła się ({error}), więc nie zostało zainstalowane
+@msg	macOS verification of the command-line tool (developer identity) did not succeed ({error}), so it wasn't installed	weryfikacja narzędzia wiersza poleceń w macOS (tożsamość programisty) nie powiodła się ({error}), więc nie zostało zainstalowane
+@msg	macOS verification of the command-line tool (notarization) did not succeed ({error}), so it wasn't installed	weryfikacja narzędzia wiersza poleceń w macOS (notaryzacja) nie powiodła się ({error}), więc nie zostało zainstalowane
+@msg	{path} already exists and doesn't point to this command-line tool, so it wasn't replaced	{path} już istnieje i nie wskazuje na to narzędzie wiersza poleceń, więc nie zostało zastąpione
+@msg	the command-line tool's removal record doesn't match this app, so nothing was removed	zapis usuwania narzędzia wiersza poleceń nie pasuje do tej aplikacji, więc niczego nie usunięto
+@msg	{path} isn't a real folder, so nothing was removed through it	{path} nie jest rzeczywistym folderem, więc niczego przez niego nie usunięto
+@msg	couldn't inspect {path} ({error})	nie udało się sprawdzić {path} ({error})
+@msg	couldn't create {path} ({error})	nie udało się utworzyć {path} ({error})
+@msg	couldn't create a staging folder in {path} ({error})	nie udało się utworzyć folderu roboczego w {path} ({error})
+@msg	couldn't make {name} runnable ({error})	nie udało się nadać uprawnień uruchamiania plikowi {name} ({error})
+@msg	couldn't link {path} ({error})	nie udało się utworzyć dowiązania {path} ({error})
+@msg	couldn't remove {path} ({error})	nie udało się usunąć {path} ({error})
+@msg	{error}; {restore}; recovery files were kept at {path}	{error}; {restore}; pliki odzyskiwania zachowano w {path}
+@msg	couldn't discard {path} ({error})	nie udało się odrzucić {path} ({error})
+@msg	Couldn't inspect {path} ({error}); its removal record was kept for retry.	Nie udało się sprawdzić {path} ({error}); zapis usuwania zachowano do ponownej próby.
+@msg	{path} is still present but couldn't be identified as {name}; it was left alone and its removal record was kept for retry.	{path} nadal istnieje, ale nie udało się potwierdzić, że to {name}; pozostawiono bez zmian, a zapis usuwania zachowano do ponownej próby.
+@msg	{name} installed: {version} ({cli})	Zainstalowano {name} w wersji {version} ({cli})
+@msg	{name} installed: {version} (its command-line tool wasn't installed: {error})	Zainstalowano {name} w wersji {version} (narzędzie wiersza poleceń nie zostało zainstalowane: {error})
+@msg	{name} installed: {version} (this release publishes no checksum, so only its size was checked) ({cli})	Zainstalowano {name} w wersji {version} (to wydanie nie zawiera sumy kontrolnej, więc sprawdzono tylko rozmiar) ({cli})
+@msg	{name} installed: {version} (this release publishes no checksum, so only its size was checked) (its command-line tool wasn't installed: {error})	Zainstalowano {name} w wersji {version} (to wydanie nie zawiera sumy kontrolnej, więc sprawdzono tylko rozmiar) (narzędzie wiersza poleceń nie zostało zainstalowane: {error})
+@msg	{name} updated to {version} ({cli})	Zaktualizowano {name} do wersji {version} ({cli})
+@msg	{name} updated to {version} (its command-line tool wasn't installed: {error})	Zaktualizowano {name} do wersji {version} (narzędzie wiersza poleceń nie zostało zainstalowane: {error})
+@msg	{name} updated to {version} (this release publishes no checksum, so only its size was checked) ({cli})	Zaktualizowano {name} do wersji {version} (to wydanie nie zawiera sumy kontrolnej, więc sprawdzono tylko rozmiar) ({cli})
+@msg	{name} updated to {version} (this release publishes no checksum, so only its size was checked) (its command-line tool wasn't installed: {error})	Zaktualizowano {name} do wersji {version} (to wydanie nie zawiera sumy kontrolnej, więc sprawdzono tylko rozmiar) (narzędzie wiersza poleceń nie zostało zainstalowane: {error})
+@msg	{name}'s download does not match the advertised version {version}.	Pobrany plik aplikacji {name} nie odpowiada podanej wersji {version}.
+@msg	{name}'s download URL filename does not match selected asset {asset}.	Nazwa pliku w adresie pobierania aplikacji {name} nie pasuje do wybranego pliku {asset}.

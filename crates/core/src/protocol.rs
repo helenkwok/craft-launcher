@@ -4,7 +4,7 @@
 //! The UI sends [`Command`]s and drains [`Event`]s once per frame, so backends do their work on
 //! threads (desktop) or futures (web) and never block a frame.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{Deserialize, Serialize};
 
@@ -29,6 +29,16 @@ pub enum Command {
     Install {
         app: String,
     },
+    /// Discard the selected GUI archive and install it afresh as one ordered job.
+    /// `path` is present only after the user confirms replacing an occupied destination.
+    DownloadAgain {
+        app: String,
+        path: Option<String>,
+    },
+    /// Install or repair only an opted-in app's CLI at its installed release version (macOS).
+    InstallCli {
+        app: String,
+    },
     /// Install or update every app in `apps` together: their downloads run as for [`Command::Install`],
     /// but where the platform needs a permission prompt (polkit on Linux, elevation on Windows)
     /// the batch shares one prompt instead of one per app. Apps already running a job are left out.
@@ -45,6 +55,10 @@ pub enum Command {
     Uninstall {
         app: String,
     },
+    /// Remove only the launcher's managed CLI, regardless of whether the GUI app is installed.
+    UninstallCli {
+        app: String,
+    },
     /// Start an installed app, passing `args` (the user's launch flags) on its command line.
     Launch {
         app: String,
@@ -54,12 +68,16 @@ pub enum Command {
     Reveal {
         app: String,
     },
-    /// Pause a running download, keeping what's downloaded so far (`Install` resumes it).
+    /// Pause a running download, keeping what's downloaded so far (the same install command resumes it).
     Pause {
         app: String,
     },
     /// Stop a running download, or throw away a paused one or one kept after a failed install.
     Cancel {
+        app: String,
+    },
+    /// Discard only a retained CLI archive. Never cancel a running job or discard an app download.
+    DiscardCli {
         app: String,
     },
     /// Download the newer ArtCraft Launcher, put it in place and restart into it.
@@ -105,8 +123,8 @@ pub const MAC_CLI_PATH_LINE: &str = "export PATH=\"$HOME/Library/Application Sup
 #[serde(default)]
 pub struct BackendOptions {
     pub install_locations: InstallLocations,
-    /// macOS: install each app's command-line tool with it, and keep it at the app's version (off by default).
-    pub install_cli: bool,
+    /// macOS: apps whose separate command-line tools are installed and updated with them.
+    pub cli_apps: BTreeSet<String>,
     /// Package formats to install, best first (empty: the platform default).
     pub kinds: Vec<PackageKind>,
     /// Per-app version choices; an absent entry follows stable releases.
@@ -235,6 +253,16 @@ pub enum Event {
         app: String,
         installed: Option<Installed>,
     },
+    /// A launcher-managed app record remains, including when removal bookkeeping needs a retry.
+    AppManaged {
+        app: String,
+        managed: bool,
+    },
+    /// A launcher-managed CLI record remains, including when app removal needs cleanup retried.
+    CliManaged {
+        app: String,
+        managed: bool,
+    },
     Progress {
         app: String,
         phase: JobPhase,
@@ -242,6 +270,11 @@ pub enum Event {
     /// A download is paused (by the user, by a lost connection, or left over from an earlier
     /// run) and can be resumed; `None` once there's no paused download.
     Paused {
+        app: String,
+        download: Option<PausedDownload>,
+    },
+    /// A separate CLI archive waiting for `InstallCli`, reconstructed from its cached file.
+    CliPaused {
         app: String,
         download: Option<PausedDownload>,
     },
@@ -269,6 +302,12 @@ pub enum Event {
     Occupied {
         app: String,
         path: String,
+        download_again: bool,
+    },
+    /// Discarding a retained download failed. This is not a job result and must not clear a newer job.
+    DownloadDiscardFailed {
+        app: String,
+        error: String,
     },
     /// A job ended: `Ok` carries a short success message, `Err` what went wrong.
     JobFinished {
