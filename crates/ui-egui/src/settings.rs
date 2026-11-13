@@ -113,6 +113,7 @@ pub struct Settings {
     #[serde(default)]
     pub cli_apps: std::collections::BTreeSet<String>,
     /// macOS: install available command-line tools with apps unless individually excluded.
+    #[serde(alias = "install_cli")]
     pub cli_default: bool,
     /// Apps explicitly opted out of the global CLI default, including after CLI removal.
     pub cli_excluded: std::collections::BTreeSet<String>,
@@ -305,6 +306,21 @@ impl Default for Settings {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn legacy_cli_install_choice_migrates_to_the_canonical_default() {
+        for enabled in [false, true] {
+            let legacy = serde_json::json!({ "install_cli": enabled });
+            let settings: Settings = serde_json::from_value(legacy).expect("legacy CLI settings");
+            assert_eq!(settings.cli_default, enabled);
+            assert_eq!(settings.cli_enabled("photocraft"), enabled);
+            let saved = serde_json::to_value(&settings).expect("save migrated settings");
+            assert_eq!(saved.get("cli_default"), Some(&serde_json::Value::Bool(enabled)));
+            assert!(saved.get("install_cli").is_none());
+            let restored: Settings = serde_json::from_value(saved).expect("canonical CLI settings");
+            assert_eq!(restored, settings);
+        }
+    }
 
     #[test]
     fn cli_default_preserves_explicit_choices_and_round_trips() {

@@ -1238,6 +1238,20 @@ mod tests {
         assert!(matches!(sent.borrow().last(), Some(Command::Configure(options)) if options.cli_apps.contains(added)));
     }
 
+    #[test]
+    fn legacy_cli_default_preserves_backend_upkeep() {
+        for enabled in [false, true] {
+            let (mut ui, sent, _) = launcher();
+            ui.settings = serde_json::from_value(serde_json::json!({ "install_cli": enabled })).expect("legacy CLI settings");
+            ui.configure();
+            let commands = sent.borrow();
+            let Some(Command::Configure(options)) = commands.last() else { panic!("expected backend options") };
+            for entry in &ui.entries {
+                assert_eq!(options.cli_apps.contains(entry.app.id), enabled);
+            }
+        }
+    }
+
     /// A CJK preference is drawable only while that language's own face is installed: having the
     /// system font cached, or another script's face installed, is not enough.
     #[test]
