@@ -24,7 +24,9 @@
 //! - [`message`] / [`msg`]: a status or error message, translated only where it is shown.
 //!   The message itself stays English (the control channel, tests read it); `@msg` catalog
 //!   rows hold whole messages or templates such as `Couldn't open {name}: {e}`, whose
-//!   placeholders match any text and are carried over into the translation.
+//!   placeholders match any text and are carried over into the translation. Explicit message
+//!   slots (`cli`, `error`, `e`, `reason`, `restore`, `removed`) translate known nested messages
+//!   with bounded depth; names, versions, paths and unknown external reasons remain literal.
 
 mod catalog;
 mod detect;

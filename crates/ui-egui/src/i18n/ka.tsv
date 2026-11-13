@@ -456,3 +456,73 @@ anicraft	Classic tweens with eight easing presets and custom ease curves, plus s
 	Uninstall command-line tool…	ბრძანების ხაზის ხელსაწყოს წაშლა…
 	Uninstall command-line tool?	წაიშალოს ბრძანების ხაზის ხელსაწყო?
 	Only the command-line tool will be removed. Your documents and settings stay.	წაიშლება მხოლოდ ბრძანების ხაზის ხელსაწყო. თქვენი დოკუმენტები და პარამეტრები შენარჩუნდება.
+
+# CLI install, update, removal and recovery messages. Names, versions and paths stay literal; nested known errors may be translated.
+@msg	{name} command-line tool {version} was installed	{name}-ის ბრძანების ხაზის ხელსაწყო {version} დაყენებულია
+@msg	{name} command-line tool was removed	{name}-ის ბრძანების ხაზის ხელსაწყო წაშლილია
+@msg	{name} command-line tool couldn't be removed ({error}); its record was kept for retry.	{name}-ის ბრძანების ხაზის ხელსაწყო ვერ წაიშალა ({error}); ჩანაწერი ხელახალი მცდელობისთვის შენარჩუნდა.
+@msg	{name} was removed, but its command-line tool couldn't be removed ({error}); its record was kept for retry.	{name} წაიშალა, მაგრამ მისი ბრძანების ხაზის ხელსაწყო ვერ წაიშალა ({error}); ჩანაწერი ხელახალი მცდელობისთვის შენარჩუნდა.
+@msg	{removed}, but its removal record couldn't be saved ({error}); its record was kept for retry.	{removed}, მაგრამ წაშლის ჩანაწერი ვერ შეინახა ({error}); ჩანაწერი ხელახალი მცდელობისთვის შენარჩუნდა.
+@msg	Enable this app's command-line tool on macOS before installing it.	დაყენებამდე macOS-ზე ჩართეთ ამ აპლიკაციის ბრძანების ხაზის ხელსაწყო.
+@msg	Check for updates before installing the command-line tool.	ბრძანების ხაზის ხელსაწყოს დაყენებამდე შეამოწმეთ განახლებები.
+@msg	Check for updates after changing the selected version before installing the command-line tool.	არჩეული ვერსიის შეცვლის შემდეგ ბრძანების ხაზის ხელსაწყოს დაყენებამდე შეამოწმეთ განახლებები.
+@msg	Install the selected app version before installing its matching command-line tool.	შესაბამისი ბრძანების ხაზის ხელსაწყოს დაყენებამდე დააყენეთ აპლიკაციის არჩეული ვერსია.
+@msg	command-line tools aren't installed in portable mode	პორტატულ რეჟიმში ბრძანების ხაზის ხელსაწყოები არ ყენდება
+@msg	this release has no command-line tool; the installed tool stays at {version}	ამ გამოშვებას ბრძანების ხაზის ხელსაწყო არ ახლავს; დაყენებული ხელსაწყო {version} ვერსიაზე დარჩება
+@msg	this release has no command-line tool for this platform	ამ გამოშვებას ამ პლატფორმისთვის ბრძანების ხაზის ხელსაწყო არ ახლავს
+@msg	command-line tool installation is only available on macOS	ბრძანების ხაზის ხელსაწყოს დაყენება მხოლოდ macOS-ზეა ხელმისაწვდომი
+@msg	ArtCraft Launcher has no macOS signing team recorded for this app, so its command-line tool wasn't installed	ArtCraft Launcher-ში ამ აპლიკაციისთვის macOS-ის ხელმომწერი გუნდი მითითებული არ არის, ამიტომ მისი ბრძანების ხაზის ხელსაწყო არ დაყენდა
+@msg	no macOS signing team is configured for this app	ამ აპლიკაციისთვის macOS-ის ხელმომწერი გუნდი გამართული არ არის
+@msg	no valid macOS signing team is configured, so the command-line tool wasn't installed	macOS-ის მოქმედი ხელმომწერი გუნდი გამართული არ არის, ამიტომ ბრძანების ხაზის ხელსაწყო არ დაყენდა
+@msg	{name}'s command-line tool download does not match the advertised version {version}.	{name}-ის ბრძანების ხაზის ხელსაწყოს ჩამოტვირთვა გამოცხადებულ {version} ვერსიას არ შეესაბამება.
+@msg	{path} already exists and wasn't made by ArtCraft Launcher, so the command-line tool wasn't installed	{path} უკვე არსებობს და ArtCraft Launcher-ს არ შეუქმნია, ამიტომ ბრძანების ხაზის ხელსაწყო არ დაყენდა
+@msg	{path} is a link, so the command-line tool wasn't installed	{path} ბმულია, ამიტომ ბრძანების ხაზის ხელსაწყო არ დაყენდა
+@msg	{path} isn't a folder, so the command-line tool wasn't installed	{path} საქაღალდე არ არის, ამიტომ ბრძანების ხაზის ხელსაწყო არ დაყენდა
+@msg	the download doesn't contain {name}	ჩამოტვირთვა {name}-ს არ შეიცავს
+@msg	couldn't read the command-line tool's unusual path	ბრძანების ხაზის ხელსაწყოს უჩვეულო ბილიკი ვერ წაიკითხა
+@msg	couldn't read the command-line tool's version ({error})	ბრძანების ხაზის ხელსაწყოს ვერსია ვერ წაიკითხა ({error})
+@msg	the command-line tool didn't report a recognizable version	ბრძანების ხაზის ხელსაწყომ ამოსაცნობი ვერსია არ მიუთითა
+@msg	the requested command-line tool version isn't valid	ბრძანების ხაზის ხელსაწყოს მოთხოვნილი ვერსია არასწორია
+@msg	the command-line tool reports version {actual}, but this release requires {expected}	ბრძანების ხაზის ხელსაწყო {actual} ვერსიას მიუთითებს, მაგრამ ეს გამოშვება {expected}-ს მოითხოვს
+@msg	couldn't move the old command-line tool aside ({error})	ძველი ბრძანების ხაზის ხელსაწყო გვერდზე ვერ გადაიტანა ({error})
+@msg	couldn't put the command-line tool in place ({error})	ბრძანების ხაზის ხელსაწყო ვერ განათავსა ({error})
+@msg	couldn't save the command-line tool's record ({error})	ბრძანების ხაზის ხელსაწყოს ჩანაწერი ვერ შეინახა ({error})
+@msg	couldn't remove the new tool ({error})	ახალი ხელსაწყო ვერ წაიშალა ({error})
+@msg	couldn't restore the old tool ({error})	ძველი ხელსაწყო ვერ აღდგა ({error})
+@msg	couldn't remove the new link ({error})	ახალი ბმული ვერ წაიშალა ({error})
+@msg	couldn't restore the old link ({error})	ძველი ბმული ვერ აღდგა ({error})
+@msg	couldn't read the command-line tool ZIP ({error})	ბრძანების ხაზის ხელსაწყოს ZIP ვერ წაიკითხა ({error})
+@msg	the command-line tool ZIP contains duplicate paths	ბრძანების ხაზის ხელსაწყოს ZIP განმეორებით ბილიკებს შეიცავს
+@msg	the command-line tool ZIP contains too many entries	ბრძანების ხაზის ხელსაწყოს ZIP ზედმეტად ბევრ ჩანაწერს შეიცავს
+@msg	the command-line tool ZIP exceeds the maximum unpacked size	ბრძანების ხაზის ხელსაწყოს ZIP გახსნის შემდეგ ზომის ზედა ზღვარს აჭარბებს
+@msg	the command-line tool ZIP contains an unsafe path	ბრძანების ხაზის ხელსაწყოს ZIP სახიფათო ბილიკს შეიცავს
+@msg	the command-line tool ZIP contains an unsafe path, link or special file	ბრძანების ხაზის ხელსაწყოს ZIP სახიფათო ბილიკს, ბმულს ან სპეციალურ ფაილს შეიცავს
+@msg	the command-line tool ZIP has a nonempty directory entry	ბრძანების ხაზის ხელსაწყოს ZIP არაცარიელ საქაღალდის ჩანაწერს შეიცავს
+@msg	the command-line tool ZIP has an unexpected unpacked size	ბრძანების ხაზის ხელსაწყოს ZIP-ის გახსნილი ზომა მოულოდნელია
+@msg	couldn't check the tool's unusual path, so it wasn't installed	ხელსაწყოს უჩვეულო ბილიკი ვერ შემოწმდა, ამიტომ არ დაყენდა
+@msg	macOS verification of the command-line tool (signature integrity) did not succeed ({error}), so it wasn't installed	ბრძანების ხაზის ხელსაწყოს შემოწმება macOS-ზე (ხელმოწერის მთლიანობა) ვერ შესრულდა ({error}), ამიტომ არ დაყენდა
+@msg	macOS verification of the command-line tool (developer identity) did not succeed ({error}), so it wasn't installed	ბრძანების ხაზის ხელსაწყოს შემოწმება macOS-ზე (დეველოპერის ვინაობა) ვერ შესრულდა ({error}), ამიტომ არ დაყენდა
+@msg	macOS verification of the command-line tool (notarization) did not succeed ({error}), so it wasn't installed	ბრძანების ხაზის ხელსაწყოს შემოწმება macOS-ზე (ნოტარიზაცია) ვერ შესრულდა ({error}), ამიტომ არ დაყენდა
+@msg	{path} already exists and doesn't point to this command-line tool, so it wasn't replaced	{path} უკვე არსებობს და ამ ბრძანების ხაზის ხელსაწყოზე არ მიუთითებს, ამიტომ არ ჩანაცვლდა
+@msg	the command-line tool's removal record doesn't match this app, so nothing was removed	ბრძანების ხაზის ხელსაწყოს წაშლის ჩანაწერი ამ აპლიკაციას არ შეესაბამება, ამიტომ არაფერი წაშლილა
+@msg	{path} isn't a real folder, so nothing was removed through it	{path} ნამდვილი საქაღალდე არ არის, ამიტომ მისი გავლით არაფერი წაშლილა
+@msg	couldn't inspect {path} ({error})	{path} ვერ შემოწმდა ({error})
+@msg	couldn't create {path} ({error})	{path} ვერ შეიქმნა ({error})
+@msg	couldn't create a staging folder in {path} ({error})	{path}-ში დროებითი საქაღალდე ვერ შეიქმნა ({error})
+@msg	couldn't make {name} runnable ({error})	{name} გასაშვებად ვერ მომზადდა ({error})
+@msg	couldn't link {path} ({error})	{path}-ის ბმული ვერ შეიქმნა ({error})
+@msg	couldn't remove {path} ({error})	{path} ვერ წაიშალა ({error})
+@msg	{error}; {restore}; recovery files were kept at {path}	{error}; {restore}; აღდგენის ფაილები {path}-ში შენარჩუნდა
+@msg	couldn't discard {path} ({error})	{path} ვერ გაუქმდა ({error})
+@msg	Couldn't inspect {path} ({error}); its removal record was kept for retry.	{path} ვერ შემოწმდა ({error}); წაშლის ჩანაწერი ხელახალი მცდელობისთვის შენარჩუნდა.
+@msg	{path} is still present but couldn't be identified as {name}; it was left alone and its removal record was kept for retry.	{path} ჯერ კიდევ არსებობს, მაგრამ ვერ დადასტურდა, რომ ის {name}-ია; უცვლელად დარჩა და წაშლის ჩანაწერი ხელახალი მცდელობისთვის შენარჩუნდა.
+@msg	{name} installed: {version} ({cli})	{name} დაინსტალირდა: {version} ({cli})
+@msg	{name} installed: {version} (its command-line tool wasn't installed: {error})	{name} დაინსტალირდა: {version} (მისი ბრძანების ხაზის ხელსაწყო არ დაყენდა: {error})
+@msg	{name} installed: {version} (this release publishes no checksum, so only its size was checked) ({cli})	{name} დაინსტალირდა: {version} (ეს გამოშვება საკონტროლო ჯამს არ აქვეყნებს, ამიტომ მხოლოდ ზომა შემოწმდა) ({cli})
+@msg	{name} installed: {version} (this release publishes no checksum, so only its size was checked) (its command-line tool wasn't installed: {error})	{name} დაინსტალირდა: {version} (ეს გამოშვება საკონტროლო ჯამს არ აქვეყნებს, ამიტომ მხოლოდ ზომა შემოწმდა) (მისი ბრძანების ხაზის ხელსაწყო არ დაყენდა: {error})
+@msg	{name} updated to {version} ({cli})	{name} განახლდა ვერსიამდე {version} ({cli})
+@msg	{name} updated to {version} (its command-line tool wasn't installed: {error})	{name} განახლდა ვერსიამდე {version} (მისი ბრძანების ხაზის ხელსაწყო არ დაყენდა: {error})
+@msg	{name} updated to {version} (this release publishes no checksum, so only its size was checked) ({cli})	{name} განახლდა ვერსიამდე {version} (ეს გამოშვება საკონტროლო ჯამს არ აქვეყნებს, ამიტომ მხოლოდ ზომა შემოწმდა) ({cli})
+@msg	{name} updated to {version} (this release publishes no checksum, so only its size was checked) (its command-line tool wasn't installed: {error})	{name} განახლდა ვერსიამდე {version} (ეს გამოშვება საკონტროლო ჯამს არ აქვეყნებს, ამიტომ მხოლოდ ზომა შემოწმდა) (მისი ბრძანების ხაზის ხელსაწყო არ დაყენდა: {error})
+@msg	{name}'s download does not match the advertised version {version}.	{name}-ის ჩამოტვირთვა გამოცხადებულ {version} ვერსიას არ შეესაბამება.
+@msg	{name}'s download URL filename does not match selected asset {asset}.	{name}-ის ჩამოტვირთვის URL-ის ფაილის სახელი არჩეულ {asset} ფაილს არ შეესაბამება.

@@ -71,7 +71,7 @@ impl Template {
     /// The translation with this message's placeholder values filled in, if `s` fits the template.
     /// Each placeholder matches at least one character; between two literals it takes the
     /// shortest text that fits, the last one takes everything up to the final literal.
-    fn apply(&self, s: &str) -> Option<String> {
+    fn apply(&self, s: &str, render: impl Fn(&str, &str) -> String) -> Option<String> {
         let (first, between) = self.literals.split_first()?;
         let mut rest = s.strip_prefix(first.as_str())?;
         let mut values = Vec::with_capacity(self.names.len());
@@ -93,7 +93,8 @@ impl Template {
             }
             values.push(value);
         }
-        let args: Vec<(&str, &str)> = self.names.iter().map(String::as_str).zip(values).collect();
+        let values: Vec<String> = self.names.iter().zip(values).map(|(name, value)| render(name, value)).collect();
+        let args: Vec<(&str, &str)> = self.names.iter().map(String::as_str).zip(values.iter().map(String::as_str)).collect();
         Some(super::translate::fmt(&self.translation, &args))
     }
 }
@@ -170,10 +171,26 @@ impl Catalog {
 
     /// Translate a message: an exact `@msg` row, else the most specific template it fits.
     pub fn message(&self, s: &str) -> Option<String> {
+        self.message_at(s, 0)
+    }
+
+    fn message_at(&self, s: &str, depth: u8) -> Option<String> {
+        if depth >= 8 {
+            return None;
+        }
         if let Some(t) = self.messages.get(s) {
             return Some(t.clone());
         }
-        self.templates.iter().find_map(|t| t.apply(s))
+        self.templates.iter().find_map(|t| {
+            t.apply(s, |name, value| {
+                // Only message-bearing slots recurse; identities and unknown external reasons remain literal.
+                if matches!(name, "cli" | "error" | "e" | "reason" | "restore" | "removed") {
+                    self.message_at(value, depth + 1).unwrap_or_else(|| value.to_string())
+                } else {
+                    value.to_string()
+                }
+            })
+        })
     }
 }
 

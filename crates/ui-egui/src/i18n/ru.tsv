@@ -453,3 +453,73 @@ anicraft	Classic tweens with eight easing presets and custom ease curves, plus s
 	Uninstall command-line tool…	Удалить инструмент командной строки…
 	Uninstall command-line tool?	Удалить инструмент командной строки?
 	Only the command-line tool will be removed. Your documents and settings stay.	Будет удалён только инструмент командной строки. Ваши документы и настройки сохранятся.
+
+# CLI install, update, removal and recovery messages. Names, versions and paths stay literal; nested known errors may be translated.
+@msg	{name} command-line tool {version} was installed	{name}: инструмент командной строки {version} установлен
+@msg	{name} command-line tool was removed	{name}: инструмент командной строки удалён
+@msg	{name} command-line tool couldn't be removed ({error}); its record was kept for retry.	Не удалось удалить инструмент командной строки {name} ({error}); запись сохранена для повторной попытки.
+@msg	{name} was removed, but its command-line tool couldn't be removed ({error}); its record was kept for retry.	{name} удалено, но не удалось удалить его инструмент командной строки ({error}); запись сохранена для повторной попытки.
+@msg	{removed}, but its removal record couldn't be saved ({error}); its record was kept for retry.	{removed}, но не удалось сохранить сведения об удалении ({error}); запись сохранена для повторной попытки.
+@msg	Enable this app's command-line tool on macOS before installing it.	Перед установкой включите инструмент командной строки этого приложения в macOS.
+@msg	Check for updates before installing the command-line tool.	Перед установкой инструмента командной строки проверьте обновления.
+@msg	Check for updates after changing the selected version before installing the command-line tool.	После изменения выбранной версии проверьте обновления перед установкой инструмента командной строки.
+@msg	Install the selected app version before installing its matching command-line tool.	Установите выбранную версию приложения перед установкой соответствующего инструмента командной строки.
+@msg	command-line tools aren't installed in portable mode	в переносном режиме инструменты командной строки не устанавливаются
+@msg	this release has no command-line tool; the installed tool stays at {version}	в этом выпуске нет инструмента командной строки; установленный инструмент остаётся на версии {version}
+@msg	this release has no command-line tool for this platform	в этом выпуске нет инструмента командной строки для этой платформы
+@msg	command-line tool installation is only available on macOS	установка инструмента командной строки доступна только в macOS
+@msg	ArtCraft Launcher has no macOS signing team recorded for this app, so its command-line tool wasn't installed	В ArtCraft Launcher не указана команда подписи macOS для этого приложения, поэтому его инструмент командной строки не установлен
+@msg	no macOS signing team is configured for this app	для этого приложения не настроена команда подписи macOS
+@msg	no valid macOS signing team is configured, so the command-line tool wasn't installed	не настроена действительная команда подписи macOS, поэтому инструмент командной строки не установлен
+@msg	{name}'s command-line tool download does not match the advertised version {version}.	Загруженный инструмент командной строки {name} не соответствует заявленной версии {version}.
+@msg	{path} already exists and wasn't made by ArtCraft Launcher, so the command-line tool wasn't installed	{path} уже существует и не создано ArtCraft Launcher, поэтому инструмент командной строки не установлен
+@msg	{path} is a link, so the command-line tool wasn't installed	{path} является ссылкой, поэтому инструмент командной строки не установлен
+@msg	{path} isn't a folder, so the command-line tool wasn't installed	{path} не является папкой, поэтому инструмент командной строки не установлен
+@msg	the download doesn't contain {name}	загрузка не содержит {name}
+@msg	couldn't read the command-line tool's unusual path	не удалось прочитать необычный путь инструмента командной строки
+@msg	couldn't read the command-line tool's version ({error})	не удалось прочитать версию инструмента командной строки ({error})
+@msg	the command-line tool didn't report a recognizable version	инструмент командной строки не сообщил распознаваемую версию
+@msg	the requested command-line tool version isn't valid	запрошенная версия инструмента командной строки недействительна
+@msg	the command-line tool reports version {actual}, but this release requires {expected}	инструмент командной строки сообщает версию {actual}, но этот выпуск требует {expected}
+@msg	couldn't move the old command-line tool aside ({error})	не удалось переместить прежний инструмент командной строки в резервную папку ({error})
+@msg	couldn't put the command-line tool in place ({error})	не удалось разместить инструмент командной строки ({error})
+@msg	couldn't save the command-line tool's record ({error})	не удалось сохранить запись инструмента командной строки ({error})
+@msg	couldn't remove the new tool ({error})	не удалось удалить новый инструмент ({error})
+@msg	couldn't restore the old tool ({error})	не удалось восстановить прежний инструмент ({error})
+@msg	couldn't remove the new link ({error})	не удалось удалить новую ссылку ({error})
+@msg	couldn't restore the old link ({error})	не удалось восстановить прежнюю ссылку ({error})
+@msg	couldn't read the command-line tool ZIP ({error})	не удалось прочитать ZIP инструмента командной строки ({error})
+@msg	the command-line tool ZIP contains duplicate paths	ZIP инструмента командной строки содержит повторяющиеся пути
+@msg	the command-line tool ZIP contains too many entries	ZIP инструмента командной строки содержит слишком много записей
+@msg	the command-line tool ZIP exceeds the maximum unpacked size	ZIP инструмента командной строки превышает максимальный размер после распаковки
+@msg	the command-line tool ZIP contains an unsafe path	ZIP инструмента командной строки содержит небезопасный путь
+@msg	the command-line tool ZIP contains an unsafe path, link or special file	ZIP инструмента командной строки содержит небезопасный путь, ссылку или специальный файл
+@msg	the command-line tool ZIP has a nonempty directory entry	ZIP инструмента командной строки содержит непустую запись каталога
+@msg	the command-line tool ZIP has an unexpected unpacked size	ZIP инструмента командной строки имеет неожиданный размер после распаковки
+@msg	couldn't check the tool's unusual path, so it wasn't installed	не удалось проверить необычный путь инструмента, поэтому он не установлен
+@msg	macOS verification of the command-line tool (signature integrity) did not succeed ({error}), so it wasn't installed	проверка инструмента командной строки в macOS (целостность подписи) не удалась ({error}), поэтому он не установлен
+@msg	macOS verification of the command-line tool (developer identity) did not succeed ({error}), so it wasn't installed	проверка инструмента командной строки в macOS (личность разработчика) не удалась ({error}), поэтому он не установлен
+@msg	macOS verification of the command-line tool (notarization) did not succeed ({error}), so it wasn't installed	проверка инструмента командной строки в macOS (нотариальное заверение) не удалась ({error}), поэтому он не установлен
+@msg	{path} already exists and doesn't point to this command-line tool, so it wasn't replaced	{path} уже существует и не указывает на этот инструмент командной строки, поэтому не было заменено
+@msg	the command-line tool's removal record doesn't match this app, so nothing was removed	запись удаления инструмента командной строки не соответствует этому приложению, поэтому ничего не удалено
+@msg	{path} isn't a real folder, so nothing was removed through it	{path} не является обычной папкой, поэтому через неё ничего не удалено
+@msg	couldn't inspect {path} ({error})	не удалось проверить {path} ({error})
+@msg	couldn't create {path} ({error})	не удалось создать {path} ({error})
+@msg	couldn't create a staging folder in {path} ({error})	не удалось создать временную папку в {path} ({error})
+@msg	couldn't make {name} runnable ({error})	не удалось сделать {name} исполняемым ({error})
+@msg	couldn't link {path} ({error})	не удалось создать ссылку {path} ({error})
+@msg	couldn't remove {path} ({error})	не удалось удалить {path} ({error})
+@msg	{error}; {restore}; recovery files were kept at {path}	{error}; {restore}; файлы восстановления сохранены в {path}
+@msg	couldn't discard {path} ({error})	не удалось удалить загрузку {path} ({error})
+@msg	Couldn't inspect {path} ({error}); its removal record was kept for retry.	Не удалось проверить {path} ({error}); запись удаления сохранена для повторной попытки.
+@msg	{path} is still present but couldn't be identified as {name}; it was left alone and its removal record was kept for retry.	{path} всё ещё существует, но не удалось подтвердить, что это {name}; объект оставлен без изменений, а запись удаления сохранена для повторной попытки.
+@msg	{name} installed: {version} ({cli})	Приложение {name} установлено: {version} ({cli})
+@msg	{name} installed: {version} (its command-line tool wasn't installed: {error})	Приложение {name} установлено: {version} (его инструмент командной строки не установлен: {error})
+@msg	{name} installed: {version} (this release publishes no checksum, so only its size was checked) ({cli})	Приложение {name} установлено: {version} (в этом релизе нет контрольных сумм, поэтому проверен только размер) ({cli})
+@msg	{name} installed: {version} (this release publishes no checksum, so only its size was checked) (its command-line tool wasn't installed: {error})	Приложение {name} установлено: {version} (в этом релизе нет контрольных сумм, поэтому проверен только размер) (его инструмент командной строки не установлен: {error})
+@msg	{name} updated to {version} ({cli})	Приложение {name} обновлено до {version} ({cli})
+@msg	{name} updated to {version} (its command-line tool wasn't installed: {error})	Приложение {name} обновлено до {version} (его инструмент командной строки не установлен: {error})
+@msg	{name} updated to {version} (this release publishes no checksum, so only its size was checked) ({cli})	Приложение {name} обновлено до {version} (в этом релизе нет контрольных сумм, поэтому проверен только размер) ({cli})
+@msg	{name} updated to {version} (this release publishes no checksum, so only its size was checked) (its command-line tool wasn't installed: {error})	Приложение {name} обновлено до {version} (в этом релизе нет контрольных сумм, поэтому проверен только размер) (его инструмент командной строки не установлен: {error})
+@msg	{name}'s download does not match the advertised version {version}.	Загрузка {name} не соответствует заявленной версии {version}.
+@msg	{name}'s download URL filename does not match selected asset {asset}.	Имя файла в URL загрузки {name} не соответствует выбранному файлу {asset}.

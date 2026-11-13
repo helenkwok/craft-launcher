@@ -425,3 +425,73 @@ anicraft	Classic tweens with eight easing presets and custom ease curves, plus s
 	Uninstall command-line tool…	Odinstalovat nástroj příkazového řádku…
 	Uninstall command-line tool?	Odinstalovat nástroj příkazového řádku?
 	Only the command-line tool will be removed. Your documents and settings stay.	Odstraní se pouze nástroj příkazového řádku. Vaše dokumenty a nastavení zůstanou zachovány.
+
+# CLI install, update, removal and recovery messages. Names, versions and paths stay literal; nested known errors may be translated.
+@msg	{name} command-line tool {version} was installed	{name}: nástroj příkazového řádku {version} byl nainstalován
+@msg	{name} command-line tool was removed	{name}: nástroj příkazového řádku byl odstraněn
+@msg	{name} command-line tool couldn't be removed ({error}); its record was kept for retry.	{name}: nástroj příkazového řádku se nepodařilo odstranit ({error}); jeho záznam byl ponechán pro další pokus.
+@msg	{name} was removed, but its command-line tool couldn't be removed ({error}); its record was kept for retry.	{name} byl odstraněn, ale jeho nástroj příkazového řádku se nepodařilo odstranit ({error}); jeho záznam byl ponechán pro další pokus.
+@msg	{removed}, but its removal record couldn't be saved ({error}); its record was kept for retry.	{removed}, ale záznam o odstranění se nepodařilo uložit ({error}); záznam byl ponechán pro další pokus.
+@msg	Enable this app's command-line tool on macOS before installing it.	Před instalací povolte nástroj příkazového řádku této aplikace v macOS.
+@msg	Check for updates before installing the command-line tool.	Před instalací nástroje příkazového řádku zkontrolujte aktualizace.
+@msg	Check for updates after changing the selected version before installing the command-line tool.	Po změně vybrané verze nejprve zkontrolujte aktualizace a teprve potom instalujte nástroj příkazového řádku.
+@msg	Install the selected app version before installing its matching command-line tool.	Před instalací odpovídajícího nástroje příkazového řádku nainstalujte vybranou verzi aplikace.
+@msg	command-line tools aren't installed in portable mode	v přenosném režimu se nástroje příkazového řádku neinstalují
+@msg	this release has no command-line tool; the installed tool stays at {version}	tato verze neobsahuje nástroj příkazového řádku; nainstalovaný nástroj zůstává ve verzi {version}
+@msg	this release has no command-line tool for this platform	tato verze neobsahuje nástroj příkazového řádku pro tuto platformu
+@msg	command-line tool installation is only available on macOS	instalace nástroje příkazového řádku je dostupná pouze v macOS
+@msg	ArtCraft Launcher has no macOS signing team recorded for this app, so its command-line tool wasn't installed	ArtCraft Launcher nemá pro tuto aplikaci zaznamenaný podpisový tým macOS, a proto její nástroj příkazového řádku nebyl nainstalován
+@msg	no macOS signing team is configured for this app	pro tuto aplikaci není nastaven podpisový tým macOS
+@msg	no valid macOS signing team is configured, so the command-line tool wasn't installed	není nastaven platný podpisový tým macOS, a proto nástroj příkazového řádku nebyl nainstalován
+@msg	{name}'s command-line tool download does not match the advertised version {version}.	Stažený nástroj příkazového řádku aplikace {name} neodpovídá oznámené verzi {version}.
+@msg	{path} already exists and wasn't made by ArtCraft Launcher, so the command-line tool wasn't installed	{path} již existuje a nebylo vytvořeno aplikací ArtCraft Launcher, a proto nástroj příkazového řádku nebyl nainstalován
+@msg	{path} is a link, so the command-line tool wasn't installed	{path} je odkaz, a proto nástroj příkazového řádku nebyl nainstalován
+@msg	{path} isn't a folder, so the command-line tool wasn't installed	{path} není složka, a proto nástroj příkazového řádku nebyl nainstalován
+@msg	the download doesn't contain {name}	stažený soubor neobsahuje {name}
+@msg	couldn't read the command-line tool's unusual path	nepodařilo se přečíst neobvyklou cestu nástroje příkazového řádku
+@msg	couldn't read the command-line tool's version ({error})	nepodařilo se zjistit verzi nástroje příkazového řádku ({error})
+@msg	the command-line tool didn't report a recognizable version	nástroj příkazového řádku neoznámil rozpoznatelnou verzi
+@msg	the requested command-line tool version isn't valid	požadovaná verze nástroje příkazového řádku není platná
+@msg	the command-line tool reports version {actual}, but this release requires {expected}	nástroj příkazového řádku hlásí verzi {actual}, ale tato verze aplikace vyžaduje {expected}
+@msg	couldn't move the old command-line tool aside ({error})	nepodařilo se odsunout původní nástroj příkazového řádku ({error})
+@msg	couldn't put the command-line tool in place ({error})	nepodařilo se umístit nástroj příkazového řádku ({error})
+@msg	couldn't save the command-line tool's record ({error})	nepodařilo se uložit záznam nástroje příkazového řádku ({error})
+@msg	couldn't remove the new tool ({error})	nepodařilo se odstranit nový nástroj ({error})
+@msg	couldn't restore the old tool ({error})	nepodařilo se obnovit původní nástroj ({error})
+@msg	couldn't remove the new link ({error})	nepodařilo se odstranit nový odkaz ({error})
+@msg	couldn't restore the old link ({error})	nepodařilo se obnovit původní odkaz ({error})
+@msg	couldn't read the command-line tool ZIP ({error})	nepodařilo se přečíst ZIP nástroje příkazového řádku ({error})
+@msg	the command-line tool ZIP contains duplicate paths	ZIP nástroje příkazového řádku obsahuje duplicitní cesty
+@msg	the command-line tool ZIP contains too many entries	ZIP nástroje příkazového řádku obsahuje příliš mnoho položek
+@msg	the command-line tool ZIP exceeds the maximum unpacked size	ZIP nástroje příkazového řádku překračuje maximální rozbalenou velikost
+@msg	the command-line tool ZIP contains an unsafe path	ZIP nástroje příkazového řádku obsahuje nebezpečnou cestu
+@msg	the command-line tool ZIP contains an unsafe path, link or special file	ZIP nástroje příkazového řádku obsahuje nebezpečnou cestu, odkaz nebo zvláštní soubor
+@msg	the command-line tool ZIP has a nonempty directory entry	ZIP nástroje příkazového řádku obsahuje neprázdnou položku adresáře
+@msg	the command-line tool ZIP has an unexpected unpacked size	ZIP nástroje příkazového řádku má neočekávanou rozbalenou velikost
+@msg	couldn't check the tool's unusual path, so it wasn't installed	nepodařilo se ověřit neobvyklou cestu nástroje, a proto nebyl nainstalován
+@msg	macOS verification of the command-line tool (signature integrity) did not succeed ({error}), so it wasn't installed	ověření nástroje příkazového řádku v macOS (neporušenost podpisu) selhalo ({error}), a proto nebyl nainstalován
+@msg	macOS verification of the command-line tool (developer identity) did not succeed ({error}), so it wasn't installed	ověření nástroje příkazového řádku v macOS (identita vývojáře) selhalo ({error}), a proto nebyl nainstalován
+@msg	macOS verification of the command-line tool (notarization) did not succeed ({error}), so it wasn't installed	ověření nástroje příkazového řádku v macOS (notarizace) selhalo ({error}), a proto nebyl nainstalován
+@msg	{path} already exists and doesn't point to this command-line tool, so it wasn't replaced	{path} již existuje a neodkazuje na tento nástroj příkazového řádku, a proto nebylo nahrazeno
+@msg	the command-line tool's removal record doesn't match this app, so nothing was removed	záznam o odstranění nástroje příkazového řádku neodpovídá této aplikaci, a proto nebylo nic odstraněno
+@msg	{path} isn't a real folder, so nothing was removed through it	{path} není skutečná složka, a proto přes ni nebylo nic odstraněno
+@msg	couldn't inspect {path} ({error})	nepodařilo se prověřit {path} ({error})
+@msg	couldn't create {path} ({error})	nepodařilo se vytvořit {path} ({error})
+@msg	couldn't create a staging folder in {path} ({error})	nepodařilo se vytvořit pracovní složku v {path} ({error})
+@msg	couldn't make {name} runnable ({error})	nepodařilo se nastavit spouštění souboru {name} ({error})
+@msg	couldn't link {path} ({error})	nepodařilo se vytvořit odkaz {path} ({error})
+@msg	couldn't remove {path} ({error})	nepodařilo se odstranit {path} ({error})
+@msg	{error}; {restore}; recovery files were kept at {path}	{error}; {restore}; soubory pro obnovení byly ponechány v {path}
+@msg	couldn't discard {path} ({error})	nepodařilo se zahodit {path} ({error})
+@msg	Couldn't inspect {path} ({error}); its removal record was kept for retry.	Nepodařilo se prověřit {path} ({error}); záznam o odstranění byl ponechán pro další pokus.
+@msg	{path} is still present but couldn't be identified as {name}; it was left alone and its removal record was kept for retry.	{path} stále existuje, ale nepodařilo se určit, zda jde o {name}; nebylo změněno a záznam o odstranění byl ponechán pro další pokus.
+@msg	{name} installed: {version} ({cli})	Aplikace {name} byla nainstalována ve verzi {version} ({cli})
+@msg	{name} installed: {version} (its command-line tool wasn't installed: {error})	Aplikace {name} byla nainstalována ve verzi {version} (nástroj příkazového řádku nebyl nainstalován: {error})
+@msg	{name} installed: {version} (this release publishes no checksum, so only its size was checked) ({cli})	Aplikace {name} byla nainstalována ve verzi {version} (toto vydání neobsahuje kontrolní součet, ověřena byla pouze velikost) ({cli})
+@msg	{name} installed: {version} (this release publishes no checksum, so only its size was checked) (its command-line tool wasn't installed: {error})	Aplikace {name} byla nainstalována ve verzi {version} (toto vydání neobsahuje kontrolní součet, ověřena byla pouze velikost) (nástroj příkazového řádku nebyl nainstalován: {error})
+@msg	{name} updated to {version} ({cli})	Aplikace {name} byla aktualizována na verzi {version} ({cli})
+@msg	{name} updated to {version} (its command-line tool wasn't installed: {error})	Aplikace {name} byla aktualizována na verzi {version} (nástroj příkazového řádku nebyl nainstalován: {error})
+@msg	{name} updated to {version} (this release publishes no checksum, so only its size was checked) ({cli})	Aplikace {name} byla aktualizována na verzi {version} (toto vydání neobsahuje kontrolní součet, ověřena byla pouze velikost) ({cli})
+@msg	{name} updated to {version} (this release publishes no checksum, so only its size was checked) (its command-line tool wasn't installed: {error})	Aplikace {name} byla aktualizována na verzi {version} (toto vydání neobsahuje kontrolní součet, ověřena byla pouze velikost) (nástroj příkazového řádku nebyl nainstalován: {error})
+@msg	{name}'s download does not match the advertised version {version}.	Stažený soubor aplikace {name} neodpovídá oznámené verzi {version}.
+@msg	{name}'s download URL filename does not match selected asset {asset}.	Název souboru v URL ke stažení aplikace {name} neodpovídá vybranému souboru {asset}.

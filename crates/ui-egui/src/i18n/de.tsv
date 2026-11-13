@@ -457,3 +457,73 @@ anicraft	Classic tweens with eight easing presets and custom ease curves, plus s
 	Uninstall command-line tool…	Befehlszeilenprogramm deinstallieren…
 	Uninstall command-line tool?	Befehlszeilenprogramm deinstallieren?
 	Only the command-line tool will be removed. Your documents and settings stay.	Nur das Befehlszeilenprogramm wird entfernt. Deine Dokumente und Einstellungen bleiben erhalten.
+
+# CLI install/update/removal/recovery. Names, paths, versions are opaque identities; cli/error/restore/removed may contain localized nested messages.
+@msg	{name} command-line tool {version} was installed	Das Befehlszeilenprogramm von {name} in Version {version} wurde installiert
+@msg	{name} command-line tool was removed	Das Befehlszeilenprogramm von {name} wurde entfernt
+@msg	{name} command-line tool couldn't be removed ({error}); its record was kept for retry.	Das Befehlszeilenprogramm von {name} konnte nicht entfernt werden ({error}); sein Eintrag wurde für einen erneuten Versuch beibehalten.
+@msg	{name} was removed, but its command-line tool couldn't be removed ({error}); its record was kept for retry.	{name} wurde entfernt, aber sein Befehlszeilenprogramm konnte nicht entfernt werden ({error}); dessen Eintrag wurde für einen erneuten Versuch beibehalten.
+@msg	{removed}, but its removal record couldn't be saved ({error}); its record was kept for retry.	{removed}, aber der Entfernungseintrag konnte nicht gespeichert werden ({error}); sein Eintrag wurde für einen erneuten Versuch beibehalten.
+@msg	Enable this app's command-line tool on macOS before installing it.	Aktiviere das Befehlszeilenprogramm dieser App unter macOS, bevor du es installierst.
+@msg	Check for updates before installing the command-line tool.	Suche vor der Installation des Befehlszeilenprogramms nach Updates.
+@msg	Check for updates after changing the selected version before installing the command-line tool.	Suche nach dem Ändern der ausgewählten Version erneut nach Updates, bevor du das Befehlszeilenprogramm installierst.
+@msg	Install the selected app version before installing its matching command-line tool.	Installiere die ausgewählte App-Version, bevor du das dazugehörige Befehlszeilenprogramm installierst.
+@msg	command-line tools aren't installed in portable mode	Befehlszeilenprogramme werden im portablen Modus nicht installiert
+@msg	this release has no command-line tool; the installed tool stays at {version}	diese Version enthält kein Befehlszeilenprogramm; das installierte Programm bleibt auf Version {version}
+@msg	this release has no command-line tool for this platform	diese Version enthält kein Befehlszeilenprogramm für diese Plattform
+@msg	command-line tool installation is only available on macOS	Befehlszeilenprogramme können nur unter macOS installiert werden
+@msg	ArtCraft Launcher has no macOS signing team recorded for this app, so its command-line tool wasn't installed	ArtCraft Launcher hat für diese App kein macOS-Signaturteam gespeichert, daher wurde ihr Befehlszeilenprogramm nicht installiert
+@msg	no macOS signing team is configured for this app	für diese App ist kein macOS-Signaturteam konfiguriert
+@msg	no valid macOS signing team is configured, so the command-line tool wasn't installed	es ist kein gültiges macOS-Signaturteam konfiguriert, daher wurde das Befehlszeilenprogramm nicht installiert
+@msg	{name}'s command-line tool download does not match the advertised version {version}.	der Download des Befehlszeilenprogramms von {name} entspricht nicht der angekündigten Version {version}.
+@msg	{path} already exists and wasn't made by ArtCraft Launcher, so the command-line tool wasn't installed	{path} existiert bereits und wurde nicht von ArtCraft Launcher erstellt, daher wurde das Befehlszeilenprogramm nicht installiert
+@msg	{path} is a link, so the command-line tool wasn't installed	{path} ist eine Verknüpfung, daher wurde das Befehlszeilenprogramm nicht installiert
+@msg	{path} isn't a folder, so the command-line tool wasn't installed	{path} ist kein Ordner, daher wurde das Befehlszeilenprogramm nicht installiert
+@msg	the download doesn't contain {name}	der Download enthält {name} nicht
+@msg	couldn't read the command-line tool's unusual path	der ungewöhnliche Pfad des Befehlszeilenprogramms konnte nicht gelesen werden
+@msg	couldn't read the command-line tool's version ({error})	die Version des Befehlszeilenprogramms konnte nicht gelesen werden ({error})
+@msg	the command-line tool didn't report a recognizable version	das Befehlszeilenprogramm hat keine erkennbare Version gemeldet
+@msg	the requested command-line tool version isn't valid	die angeforderte Version des Befehlszeilenprogramms ist ungültig
+@msg	the command-line tool reports version {actual}, but this release requires {expected}	das Befehlszeilenprogramm meldet Version {actual}, aber diese Version der App erfordert {expected}
+@msg	couldn't move the old command-line tool aside ({error})	das alte Befehlszeilenprogramm konnte nicht beiseite verschoben werden ({error})
+@msg	couldn't put the command-line tool in place ({error})	das Befehlszeilenprogramm konnte nicht an seinen Zielort verschoben werden ({error})
+@msg	couldn't save the command-line tool's record ({error})	der Eintrag des Befehlszeilenprogramms konnte nicht gespeichert werden ({error})
+@msg	couldn't remove the new tool ({error})	das neue Programm konnte nicht entfernt werden ({error})
+@msg	couldn't restore the old tool ({error})	das alte Programm konnte nicht wiederhergestellt werden ({error})
+@msg	couldn't remove the new link ({error})	die neue Verknüpfung konnte nicht entfernt werden ({error})
+@msg	couldn't restore the old link ({error})	die alte Verknüpfung konnte nicht wiederhergestellt werden ({error})
+@msg	couldn't read the command-line tool ZIP ({error})	das ZIP-Archiv des Befehlszeilenprogramms konnte nicht gelesen werden ({error})
+@msg	the command-line tool ZIP contains duplicate paths	das ZIP-Archiv des Befehlszeilenprogramms enthält doppelte Pfade
+@msg	the command-line tool ZIP contains too many entries	das ZIP-Archiv des Befehlszeilenprogramms enthält zu viele Einträge
+@msg	the command-line tool ZIP exceeds the maximum unpacked size	das ZIP-Archiv des Befehlszeilenprogramms überschreitet die maximal zulässige entpackte Größe
+@msg	the command-line tool ZIP contains an unsafe path	das ZIP-Archiv des Befehlszeilenprogramms enthält einen unsicheren Pfad
+@msg	the command-line tool ZIP contains an unsafe path, link or special file	das ZIP-Archiv des Befehlszeilenprogramms enthält einen unsicheren Pfad, eine Verknüpfung oder eine Spezialdatei
+@msg	the command-line tool ZIP has a nonempty directory entry	das ZIP-Archiv des Befehlszeilenprogramms enthält einen nicht leeren Verzeichniseintrag
+@msg	the command-line tool ZIP has an unexpected unpacked size	das ZIP-Archiv des Befehlszeilenprogramms hat eine unerwartete entpackte Größe
+@msg	couldn't check the tool's unusual path, so it wasn't installed	der ungewöhnliche Pfad des Programms konnte nicht geprüft werden, daher wurde es nicht installiert
+@msg	macOS verification of the command-line tool (signature integrity) did not succeed ({error}), so it wasn't installed	die macOS-Prüfung des Befehlszeilenprogramms (Integrität der Signatur) war nicht erfolgreich ({error}), daher wurde es nicht installiert
+@msg	macOS verification of the command-line tool (developer identity) did not succeed ({error}), so it wasn't installed	die macOS-Prüfung des Befehlszeilenprogramms (Entwickleridentität) war nicht erfolgreich ({error}), daher wurde es nicht installiert
+@msg	macOS verification of the command-line tool (notarization) did not succeed ({error}), so it wasn't installed	die macOS-Prüfung des Befehlszeilenprogramms (Notarisierung) war nicht erfolgreich ({error}), daher wurde es nicht installiert
+@msg	{path} already exists and doesn't point to this command-line tool, so it wasn't replaced	{path} existiert bereits und verweist nicht auf dieses Befehlszeilenprogramm, daher wurde der Pfad nicht ersetzt
+@msg	the command-line tool's removal record doesn't match this app, so nothing was removed	der Entfernungseintrag des Befehlszeilenprogramms gehört nicht zu dieser App, daher wurde nichts entfernt
+@msg	{path} isn't a real folder, so nothing was removed through it	{path} ist kein echter Ordner, daher wurde darüber nichts entfernt
+@msg	couldn't inspect {path} ({error})	{path} konnte nicht untersucht werden ({error})
+@msg	couldn't create {path} ({error})	{path} konnte nicht erstellt werden ({error})
+@msg	couldn't create a staging folder in {path} ({error})	in {path} konnte kein temporärer Vorbereitungsordner erstellt werden ({error})
+@msg	couldn't make {name} runnable ({error})	{name} konnte nicht ausführbar gemacht werden ({error})
+@msg	couldn't link {path} ({error})	die Verknüpfung {path} konnte nicht erstellt werden ({error})
+@msg	couldn't remove {path} ({error})	{path} konnte nicht entfernt werden ({error})
+@msg	{error}; {restore}; recovery files were kept at {path}	{error}; {restore}; Wiederherstellungsdateien wurden unter {path} beibehalten
+@msg	couldn't discard {path} ({error})	{path} konnte nicht verworfen werden ({error})
+@msg	Couldn't inspect {path} ({error}); its removal record was kept for retry.	{path} konnte nicht untersucht werden ({error}); der Entfernungseintrag wurde für einen erneuten Versuch beibehalten.
+@msg	{path} is still present but couldn't be identified as {name}; it was left alone and its removal record was kept for retry.	{path} ist noch vorhanden, konnte aber nicht als {name} identifiziert werden; der Pfad blieb unverändert und sein Entfernungseintrag wurde für einen erneuten Versuch beibehalten.
+@msg	{name} installed: {version} ({cli})	{name} installiert: {version} ({cli})
+@msg	{name} installed: {version} (its command-line tool wasn't installed: {error})	{name} installiert: {version} (sein Befehlszeilenprogramm wurde nicht installiert: {error})
+@msg	{name} installed: {version} (this release publishes no checksum, so only its size was checked) ({cli})	{name} installiert: {version} (diese Version veröffentlicht keine Prüfsumme, daher wurde nur die Größe geprüft) ({cli})
+@msg	{name} installed: {version} (this release publishes no checksum, so only its size was checked) (its command-line tool wasn't installed: {error})	{name} installiert: {version} (diese Version veröffentlicht keine Prüfsumme, daher wurde nur die Größe geprüft) (sein Befehlszeilenprogramm wurde nicht installiert: {error})
+@msg	{name} updated to {version} ({cli})	{name} auf {version} aktualisiert ({cli})
+@msg	{name} updated to {version} (its command-line tool wasn't installed: {error})	{name} auf {version} aktualisiert (sein Befehlszeilenprogramm wurde nicht installiert: {error})
+@msg	{name} updated to {version} (this release publishes no checksum, so only its size was checked) ({cli})	{name} auf {version} aktualisiert (diese Version veröffentlicht keine Prüfsumme, daher wurde nur die Größe geprüft) ({cli})
+@msg	{name} updated to {version} (this release publishes no checksum, so only its size was checked) (its command-line tool wasn't installed: {error})	{name} auf {version} aktualisiert (diese Version veröffentlicht keine Prüfsumme, daher wurde nur die Größe geprüft) (sein Befehlszeilenprogramm wurde nicht installiert: {error})
+@msg	{name}'s download does not match the advertised version {version}.	der Download von {name} entspricht nicht der angekündigten Version {version}.
+@msg	{name}'s download URL filename does not match selected asset {asset}.	der Dateiname in der Download-URL von {name} entspricht nicht dem ausgewählten Download-Artefakt {asset}.
