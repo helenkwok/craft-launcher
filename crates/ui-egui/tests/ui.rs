@@ -1818,7 +1818,7 @@ fn cli_download_recovery_resumes_the_tool_without_reinstalling_its_app() {
 
 #[test]
 /// A kept download offers Retry install (which only opens install) and menu Download again
-/// (Cancel then Install); apps without a kept download do not offer it.
+/// (one ordered DownloadAgain job); apps without a kept download do not offer it.
 fn a_kept_download_offers_retry_install_and_download_again() {
     let (mut h, sent) = harness(ViewMode::Grid, egui::Theme::Dark, true);
     h.run_steps(4);
@@ -1847,12 +1847,52 @@ fn a_kept_download_offers_retry_install_and_download_again() {
     snapshot(&mut h, "grid-retry-install-menu-dark");
     h.get_by_label("Download again").click();
     h.run_steps(3);
-    assert_eq!(*sent.borrow(), [Command::Cancel { app: "cadcraft".into() }]);
+    assert!(sent.borrow().is_empty(), "the install-folder prompt must not discard the cache before confirmation");
     h.get_all_by_role_and_label(egui::accesskit::Role::Button, "Install").last().unwrap().click();
     h.run_steps(2);
-    assert_eq!(*sent.borrow(), [Command::Cancel { app: "cadcraft".into() }, Command::Install { app: "cadcraft".into() }]);
+    assert_eq!(*sent.borrow(), [Command::DownloadAgain { app: "cadcraft".into(), path: None }]);
     // Apps without a kept download don't offer it.
     assert_eq!(h.query_all_by_label("Retry install").count(), 1);
+}
+
+#[test]
+fn download_again_preserves_folder_confirmation_and_starts_one_ordered_job() {
+    for view in [ViewMode::Grid, ViewMode::Table] {
+        let (mut h, sent) = harness(view, egui::Theme::Dark, true);
+        h.state_mut().as_mut().unwrap().settings.filter = artcraft_launcher_ui_egui::settings::Filter::NotInstalled;
+        h.run_steps(6);
+        h.get_by_label("More actions for CADCraft").scroll_to_me();
+        h.run_steps(3);
+        sent.borrow_mut().clear();
+        h.get_by_label("More actions for CADCraft").click();
+        h.run_steps(3);
+        h.get_by_label("Download again").click();
+        h.run_steps(3);
+        assert!(sent.borrow().is_empty());
+        h.get_by_label("Cancel").click();
+        h.run_steps(3);
+        assert!(sent.borrow().is_empty(), "cancelling the folder dialog must not discard or install");
+        h.get_by_label("More actions for CADCraft").click();
+        h.run_steps(3);
+        h.get_by_label("Download again").click();
+        h.run_steps(3);
+        h.get_all_by_role_and_label(egui::accesskit::Role::Button, "Install").last().unwrap().click();
+        h.run_steps(3);
+        assert_eq!(*sent.borrow(), [Command::DownloadAgain { app: "cadcraft".into(), path: None }]);
+
+        let mut ev = events();
+        ev.push(Event::ReadyToInstall { app: "effectcraft".into(), ready: true });
+        let (mut installed, sent) = harness_with(ev, view, egui::Theme::Dark, true, 1.0);
+        installed.run_steps(6);
+        installed.get_by_label("More actions for EffectCraft").scroll_to_me();
+        installed.run_steps(3);
+        sent.borrow_mut().clear();
+        installed.get_by_label("More actions for EffectCraft").click();
+        installed.run_steps(3);
+        installed.get_by_label("Download again").click();
+        installed.run_steps(3);
+        assert_eq!(*sent.borrow(), [Command::DownloadAgain { app: "effectcraft".into(), path: None }]);
+    }
 }
 
 #[test]
@@ -4213,7 +4253,7 @@ fn command_m_minimizes_the_mac_window_only() {
 fn an_occupied_folder_asks_before_replacing_it() {
     let path = "/Volumes/Craft Apps/PhotoCraft.app";
     let mut ev = events();
-    ev.push(Event::Occupied { app: "photocraft".into(), path: path.into() });
+    ev.push(Event::Occupied { app: "photocraft".into(), path: path.into(), download_again: false });
     ev.push(Event::JobFinished { app: "photocraft".into(), result: Err(format!("{path} already exists")) });
     let (mut h, sent) = harness_with(ev, ViewMode::Grid, egui::Theme::Dark, true, 1.0);
     h.run_steps(6);
@@ -4224,6 +4264,26 @@ fn an_occupied_folder_asks_before_replacing_it() {
     h.run_steps(2);
     assert_eq!(*sent.borrow(), [Command::Replace { app: "photocraft".into(), path: path.into() }]);
     assert!(h.query_by_label("Replace").is_none());
+}
+
+#[test]
+fn download_again_keeps_occupied_path_consent_and_cancel_is_a_noop() {
+    for confirm in [false, true] {
+        let path = "/Volumes/Craft Apps/PhotoCraft.app";
+        let mut ev = events();
+        ev.push(Event::Occupied { app: "photocraft".into(), path: path.into(), download_again: true });
+        ev.push(Event::JobFinished { app: "photocraft".into(), result: Err(format!("{path} already exists")) });
+        let (mut h, sent) = harness_with(ev, ViewMode::Grid, egui::Theme::Dark, true, 1.0);
+        h.run_steps(6);
+        sent.borrow_mut().clear();
+        h.get_by_label(if confirm { "Replace" } else { "Cancel" }).click();
+        h.run_steps(3);
+        if confirm {
+            assert_eq!(*sent.borrow(), [Command::DownloadAgain { app: "photocraft".into(), path: Some(path.into()) }]);
+        } else {
+            assert!(sent.borrow().is_empty());
+        }
+    }
 }
 
 #[test]

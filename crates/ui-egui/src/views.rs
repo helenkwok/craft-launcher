@@ -1334,8 +1334,7 @@ impl LauncherUi {
             let can_download_again =
                 manage && entry.ready && entry.paused_download().is_none() && matches!(status, AppStatus::Available | AppStatus::UpdateAvailable);
             if can_download_again && ui.button(tl!("Download again")).clicked() {
-                self.act_command(Command::Cancel { app: id.clone() });
-                self.install_app(&id);
+                self.request_install(&id, true);
                 ui.close();
             }
             if manage && status.is_installed() {

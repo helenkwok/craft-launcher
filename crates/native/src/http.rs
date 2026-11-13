@@ -510,9 +510,15 @@ pub fn clean_downloads(dir: &Path, partial_max_age: Duration, finished_max_age: 
 }
 
 /// Throws away a paused download, and a finished one kept for another try at installing.
-pub fn discard(dest: &Path, size: u64) {
-    let _ = std::fs::remove_file(part_path(dest, size));
-    let _ = std::fs::remove_file(dest);
+pub fn discard(dest: &Path, size: u64) -> Result<(), String> {
+    for path in [part_path(dest, size), dest.to_path_buf()] {
+        match std::fs::remove_file(&path) {
+            Ok(()) => {}
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => return Err(format!("couldn't discard {} ({error})", path.display())),
+        }
+    }
+    Ok(())
 }
 
 enum AttemptError {
@@ -705,8 +711,23 @@ pub(crate) mod tests {
         // A cleanup while the installer runs leaves the reused file alone.
         clean_downloads(dir.path(), DAYS_30, DAYS_7);
         assert_eq!(std::fs::read(&dest).unwrap(), body);
-        discard(&dest, len);
+        discard(&dest, len).unwrap();
         assert!(!finished(&dest, len));
+    }
+
+    #[test]
+    fn failed_partial_discard_preserves_the_finished_archive_and_reports_the_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let dest = dir.path().join("archive.zip");
+        std::fs::write(&dest, b"old").unwrap();
+        let part = part_path(&dest, 3);
+        std::fs::create_dir(&part).unwrap();
+        assert!(discard(&dest, 3).unwrap_err().contains("couldn't discard"));
+        assert_eq!(std::fs::read(&dest).unwrap(), b"old");
+        std::fs::remove_dir(part).unwrap();
+        discard(&dest, 3).unwrap();
+        discard(&dest, 3).unwrap();
+        assert!(!dest.exists());
     }
 
     #[test]

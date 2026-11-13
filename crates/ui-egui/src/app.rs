@@ -113,8 +113,8 @@ pub(crate) enum Dialog {
     ConfirmUninstall(String),
     ConfirmUninstallCli(String),
     UnlockVersion { app: String, tag: String },
-    Install { app: String, folder: String },
-    Replace { app: String, path: String },
+    Install { app: String, folder: String, download_again: bool },
+    Replace { app: String, path: String, download_again: bool },
     Settings,
     LauncherUpdate(artcraft_launcher_core::Release),
     Versions(String),
@@ -508,12 +508,23 @@ impl LauncherUi {
     /// installed, it opens the folder dialog and sends nothing until that is confirmed; otherwise
     /// it queues `Install` immediately, including for an already installed app (update/reinstall).
     pub(crate) fn install_app(&mut self, id: &str) {
+        self.request_install(id, false);
+    }
+
+    pub(crate) fn request_install(&mut self, id: &str, download_again: bool) {
         if !self.custom_install_folders() || self.entry(id).is_some_and(|e| e.installed.is_some()) {
-            self.act_command(Command::Install { app: id.to_string() });
+            self.act_command(if download_again {
+                Command::DownloadAgain { app: id.to_string(), path: None }
+            } else {
+                Command::Install { app: id.to_string() }
+            });
             return;
         }
-        self.dialog =
-            Some(Dialog::Install { app: id.to_string(), folder: self.settings.install_locations.per_app.get(id).cloned().unwrap_or_default() });
+        self.dialog = Some(Dialog::Install {
+            app: id.to_string(),
+            folder: self.settings.install_locations.per_app.get(id).cloned().unwrap_or_default(),
+            download_again,
+        });
     }
 
     /// Non-drawing work: runs every frame and also while the window is hidden in the tray.
@@ -651,8 +662,8 @@ impl LauncherUi {
                 }
                 true
             }
-            Event::Occupied { app, path } => {
-                self.dialog = Some(Dialog::Replace { app, path });
+            Event::Occupied { app, path, download_again } => {
+                self.dialog = Some(Dialog::Replace { app, path, download_again });
                 false
             }
             Event::JobFinished { app, result } => {

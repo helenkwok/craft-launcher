@@ -371,8 +371,9 @@ impl NativeBackend {
                     && !running.contains_key(app.id)
                     && shared.download_revision(app.id) == revision
                     && let Some((dest, size)) = download
+                    && let Err(error) = http::discard(&dest, size)
                 {
-                    http::discard(&dest, size);
+                    log::warn!("{error}");
                 }
             }
             report_partial(app, &shared, &paths, platform);
@@ -557,6 +558,7 @@ impl NativeBackend {
                 let (approved, batch) = match &work {
                     Work::Replace(path) => (Some(path.as_str()), None),
                     Work::Install(batch) => (None, batch.clone()),
+                    Work::DownloadAgain(path) => (path.as_deref(), None),
                     Work::Uninstall | Work::UninstallCli | Work::InstallCli => (None, None),
                 };
                 run_install(
@@ -572,6 +574,7 @@ impl NativeBackend {
                     approved,
                     source.as_deref(),
                     batch,
+                    matches!(work, Work::DownloadAgain(_)),
                 )
             };
             // Stopped by the connection rather than by the user: say so for either download.
@@ -695,6 +698,8 @@ enum Work {
     /// Install or update. Carries the batch this job is part of, if any (see
     /// [`Command::InstallAll`]): where the platform needs a permission prompt, the batch shares one.
     Install(Option<crate::queue::Gather>),
+    /// Clear the selected GUI archive before installing; an optional path carries overwrite consent.
+    DownloadAgain(Option<String>),
     /// Install over the path the user agreed to overwrite (see [`Command::Replace`]).
     Replace(String),
     InstallCli,
@@ -835,6 +840,7 @@ fn run_install(
     approved: Option<&str>,
     source: Option<&dyn ReleaseSource>,
     batch: Option<crate::queue::Gather>,
+    download_again: bool,
 ) -> Result<String, String> {
     // The ways out below that never reach the installer (a repository-managed Flatpak, a missing
     // release, the overwrite question, a paused download) free the rest of the batch at once;
@@ -904,11 +910,18 @@ fn run_install(
         Consent::Free => false,
         Consent::Given => true,
         Consent::Ask(path) => {
-            shared.emit(Event::Occupied { app: app.id.to_string(), path: path.display().to_string() });
+            shared.emit(Event::Occupied { app: app.id.to_string(), path: path.display().to_string(), download_again });
             return Err(format!("{} already exists", path.display()));
         }
     };
     let approved_path = occupied.as_deref().filter(|_| replace);
+    if download_again {
+        if !artcraft_launcher_core::release::valid_file_name(&asset.name) {
+            return Err("the release has an unexpected file name".into());
+        }
+        install::bind_artifact_version(app, &release, &asset)?;
+        http::discard(&install::download_path(paths, &asset), asset.size)?;
+    }
     let mut last_emit = None;
     let mut phase = |phase| shared.report_progress(app.id, phase, &mut last_emit, Instant::now());
     let mut job = Job {
@@ -1733,6 +1746,9 @@ impl Backend for NativeBackend {
             }
             Command::Install { app } => {
                 self.start_job(&app, Work::Install(None));
+            }
+            Command::DownloadAgain { app, path } => {
+                self.start_job(&app, Work::DownloadAgain(path));
             }
             Command::InstallCli { app } => {
                 self.start_job(&app, Work::InstallCli);
@@ -2944,6 +2960,93 @@ mod tests {
         assert!(!busy);
         assert!(matches!(plan, Some((_, 3))), "JobFinished observers need the final download plan: {plan:?}");
         assert_eq!(backend.download_size(APP), plan);
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn download_again_clears_the_selected_cache_before_install_and_aborts_if_it_cannot() {
+        use std::os::unix::fs::PermissionsExt;
+
+        for blocked in [false, true] {
+            let dir = tempfile::tempdir().unwrap();
+            let platform = Platform { os: Os::MacOs, arch: Arch::Arm64 };
+            let backend = backend(dir.path(), platform, None);
+            let app = CraftApp::by_id(APP).unwrap();
+            let mut options = BackendOptions::default();
+            options.install_locations.per_app.insert(APP.into(), dir.path().join("installed").to_str().unwrap().into());
+            std::fs::create_dir_all(dir.path().join("installed")).unwrap();
+            let mut release = stable("0.5.0");
+            release.tag = "v0.5.0".into();
+            let (mut asset, _) = planned_asset(app, &release, platform, &options, None, None).unwrap();
+            let dest = install::download_path(&backend.paths, &asset);
+            std::fs::create_dir_all(backend.paths.downloads()).unwrap();
+            std::fs::write(&dest, b"old").unwrap();
+            asset.url = format!("https://github.com/storytold/{APP}/releases/download/v0.5.0/{}", asset.name);
+            asset.sha256 = Some(http::sha256_file(&dest).unwrap());
+            release.assets = vec![asset];
+            backend.shared.latest.lock().unwrap().insert(APP.into(), release);
+            let cli_cache = backend.paths.downloads().join("photocraft-cli-0.5.0-macos-universal.zip");
+            std::fs::write(&cli_cache, b"cli").unwrap();
+            let stop = Stop::default();
+            stop.pause();
+            let http = Http::new().unwrap();
+            let occupied = dir.path().join("installed").join(format!("{}.app", app.mac_bundle_names().next().unwrap()));
+            if !blocked {
+                std::fs::create_dir_all(&occupied).unwrap();
+                std::fs::write(occupied.join("keep"), b"user files").unwrap();
+                let result = run_install(
+                    app,
+                    &backend.shared,
+                    &backend.paths,
+                    Some(&http),
+                    Some(platform),
+                    &options,
+                    None,
+                    None,
+                    &stop,
+                    None,
+                    None,
+                    None,
+                    true,
+                );
+                assert!(result.is_err());
+                assert_eq!(std::fs::read(&dest).unwrap(), b"old", "overwrite consent must precede cache deletion");
+                assert!(backend.shared.events.lock().unwrap().iter().any(|event| matches!(event,
+                    Event::Occupied { path, download_again: true, .. } if path == occupied.to_str().unwrap())));
+            }
+            if blocked {
+                std::fs::set_permissions(backend.paths.downloads(), std::fs::Permissions::from_mode(0o500)).unwrap();
+            }
+            // A valid retained file bypasses a stopped network transfer; fresh download must remove it first.
+            let approved = (!blocked).then(|| occupied.to_str().unwrap());
+            let result = run_install(
+                app,
+                &backend.shared,
+                &backend.paths,
+                Some(&http),
+                Some(platform),
+                &options,
+                None,
+                None,
+                &stop,
+                approved,
+                None,
+                None,
+                true,
+            );
+            std::fs::set_permissions(backend.paths.downloads(), std::fs::Permissions::from_mode(0o700)).unwrap();
+            if blocked {
+                let error = result.unwrap_err();
+                assert!(error.contains("couldn't discard"), "{error}");
+                assert_eq!(std::fs::read(&dest).unwrap(), b"old");
+            } else {
+                assert_eq!(result, Err(PAUSED.into()));
+                assert!(!dest.exists(), "fresh install must not reuse the valid retained archive");
+                assert_eq!(std::fs::read(occupied.join("keep")).unwrap(), b"user files");
+            }
+            assert_eq!(std::fs::read(cli_cache).unwrap(), b"cli");
+            assert!(!backend.shared.events.lock().unwrap().iter().any(|event| matches!(event, Event::Progress { phase: JobPhase::Installing, .. })));
+        }
     }
 
     #[test]

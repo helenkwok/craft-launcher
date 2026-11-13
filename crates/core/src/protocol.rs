@@ -29,6 +29,12 @@ pub enum Command {
     Install {
         app: String,
     },
+    /// Discard the selected GUI archive and install it afresh as one ordered job.
+    /// `path` is present only after the user confirms replacing an occupied destination.
+    DownloadAgain {
+        app: String,
+        path: Option<String>,
+    },
     /// Install or repair only an opted-in app's CLI at its installed release version (macOS).
     InstallCli {
         app: String,
@@ -296,6 +302,7 @@ pub enum Event {
     Occupied {
         app: String,
         path: String,
+        download_again: bool,
     },
     /// A job ended: `Ok` carries a short success message, `Err` what went wrong.
     JobFinished {

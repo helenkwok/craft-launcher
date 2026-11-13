@@ -35,8 +35,10 @@ impl LauncherUi {
             Dialog::ConfirmUninstall(id) => modal.show(ctx, |ui| close = self.uninstall_dialog(ui, id, false)),
             Dialog::ConfirmUninstallCli(id) => modal.show(ctx, |ui| close = self.uninstall_dialog(ui, id, true)),
             Dialog::UnlockVersion { app, tag } => modal.show(ctx, |ui| close = self.unlock_version_dialog(ui, app, tag)),
-            Dialog::Install { app, folder } => modal.show(ctx, |ui| close = self.install_dialog(ui, app, folder, host)),
-            Dialog::Replace { app, path } => modal.show(ctx, |ui| close = self.replace_dialog(ui, app, path)),
+            Dialog::Install { app, folder, download_again } => {
+                modal.show(ctx, |ui| close = self.install_dialog(ui, app, folder, *download_again, host))
+            }
+            Dialog::Replace { app, path, download_again } => modal.show(ctx, |ui| close = self.replace_dialog(ui, app, path, *download_again)),
             Dialog::Settings => modal.show(ctx, |ui| close = self.settings_dialog(ui, host)),
             Dialog::LauncherUpdate(r) => modal.show(ctx, |ui| close = self.launcher_update_dialog(ui, r)),
             Dialog::Versions(id) => modal.show(ctx, |ui| close = self.version_dialog(ui, id)),
@@ -289,7 +291,7 @@ impl LauncherUi {
     /// Warns that `path` already exists and asks whether to replace it, returning `true` when the
     /// dialog should close, including when the app entry is gone. `Replace` is queued at the action
     /// boundary, not sent inline.
-    fn replace_dialog(&mut self, ui: &mut egui::Ui, id: &str, path: &str) -> bool {
+    fn replace_dialog(&mut self, ui: &mut egui::Ui, id: &str, path: &str, download_again: bool) -> bool {
         let Some(app) = self.entry(id).map(|e| e.app) else { return true };
         let t = Tokens::get(ui.ctx());
         ui.set_width(440.0f32.min(ui.ctx().content_rect().width() - 80.0));
@@ -303,7 +305,11 @@ impl LauncherUi {
         ui.horizontal(|ui| {
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if widgets::button(ui, tl!("Replace"), Kind::Danger, 110.0).clicked() {
-                    self.act_command(Command::Replace { app: id.to_string(), path: path.to_string() });
+                    self.act_command(if download_again {
+                        Command::DownloadAgain { app: id.to_string(), path: Some(path.to_string()) }
+                    } else {
+                        Command::Replace { app: id.to_string(), path: path.to_string() }
+                    });
                     close = true;
                 }
                 if widgets::button(ui, tl!("Cancel"), Kind::Secondary, 90.0).clicked() {
@@ -318,7 +324,7 @@ impl LauncherUi {
     /// close, including when the app entry is gone. An empty field removes the per-app override, a
     /// non-empty one persists it, and any changed configuration is sent before the install is queued. The path
     /// itself is not validated here.
-    fn install_dialog(&mut self, ui: &mut egui::Ui, id: &str, folder: &mut String, host: &mut dyn Host) -> bool {
+    fn install_dialog(&mut self, ui: &mut egui::Ui, id: &str, folder: &mut String, download_again: bool, host: &mut dyn Host) -> bool {
         let Some(app) = self.entry(id).map(|e| e.app) else { return true };
         ui.set_width(440.0f32.min(ui.ctx().content_rect().width() - 80.0));
         Self::title(ui, None, app.name, tl!("Install folder"));
@@ -337,7 +343,11 @@ impl LauncherUi {
                     self.settings.install_locations.per_app.insert(id.to_string(), folder.clone());
                 }
                 self.configure();
-                self.act_command(Command::Install { app: id.to_string() });
+                self.act_command(if download_again {
+                    Command::DownloadAgain { app: id.to_string(), path: None }
+                } else {
+                    Command::Install { app: id.to_string() }
+                });
                 close = true;
             }
             close |= widgets::button(ui, tl!("Cancel"), Kind::Secondary, 90.0).clicked();
