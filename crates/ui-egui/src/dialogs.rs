@@ -32,7 +32,8 @@ impl LauncherUi {
         let mut close = false;
         let response = match &mut dialog {
             Dialog::Notes(id) => modal.show(ctx, |ui| close = self.notes_dialog(ui, id)),
-            Dialog::ConfirmUninstall(id) => modal.show(ctx, |ui| close = self.uninstall_dialog(ui, id)),
+            Dialog::ConfirmUninstall(id) => modal.show(ctx, |ui| close = self.uninstall_dialog(ui, id, false)),
+            Dialog::ConfirmUninstallCli(id) => modal.show(ctx, |ui| close = self.uninstall_dialog(ui, id, true)),
             Dialog::UnlockVersion { app, tag } => modal.show(ctx, |ui| close = self.unlock_version_dialog(ui, app, tag)),
             Dialog::Install { app, folder } => modal.show(ctx, |ui| close = self.install_dialog(ui, app, folder, host)),
             Dialog::Replace { app, path } => modal.show(ctx, |ui| close = self.replace_dialog(ui, app, path)),
@@ -199,23 +200,29 @@ impl LauncherUi {
         close
     }
 
-    /// Confirms removing an installed app and returns `true` when the dialog should close, including
-    /// when the app entry has disappeared. It queues `Uninstall` only on confirmation and explains
-    /// the removal differently for each install source.
-    fn uninstall_dialog(&mut self, ui: &mut egui::Ui, id: &str) -> bool {
+    /// The confirmed target stays fixed even if detection changes while this dialog is open.
+    fn uninstall_dialog(&mut self, ui: &mut egui::Ui, id: &str, cli_only: bool) -> bool {
         let Some(entry) = self.entry(id).cloned() else { return true };
         let t = Tokens::get(ui.ctx());
         ui.set_width(420.0);
-        Self::title(ui, crate::icons::app(id), &fmt(tl!("Uninstall {name}?"), &[("name", entry.app.name)]), "");
-        let how = match entry.installed.as_ref().map(|i| i.source) {
-            Some(artcraft_launcher_core::InstallSource::MacApp) => tl!("The app will be moved to the Trash. Your documents and settings stay."),
-            Some(artcraft_launcher_core::InstallSource::Msi) => {
+        let title =
+            if cli_only { tl!("Uninstall command-line tool?").to_string() } else { fmt(tl!("Uninstall {name}?"), &[("name", entry.app.name)]) };
+        Self::title(ui, crate::icons::app(id), &title, if cli_only { entry.app.name } else { "" });
+        let how = match (cli_only, entry.installed.as_ref().map(|i| i.source)) {
+            (true, _) => tl!("Only the command-line tool will be removed. Your documents and settings stay."),
+            (false, Some(artcraft_launcher_core::InstallSource::MacApp)) => {
+                tl!("The app will be moved to the Trash. Your documents and settings stay.")
+            }
+            (false, Some(artcraft_launcher_core::InstallSource::Msi)) => {
                 tl!("Windows will remove it like any installed program. Your documents and settings stay.")
             }
-            Some(
-                artcraft_launcher_core::InstallSource::Deb
-                | artcraft_launcher_core::InstallSource::Rpm
-                | artcraft_launcher_core::InstallSource::Pacman,
+            (
+                false,
+                Some(
+                    artcraft_launcher_core::InstallSource::Deb
+                    | artcraft_launcher_core::InstallSource::Rpm
+                    | artcraft_launcher_core::InstallSource::Pacman,
+                ),
             ) => tl!("Your system's package manager will remove it, and may ask for your password. Your documents and settings stay."),
             _ => tl!("The app will be removed. Your documents and settings stay."),
         };
@@ -226,7 +233,14 @@ impl LauncherUi {
         ui.horizontal(|ui| {
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if widgets::button(ui, tl!("Uninstall"), Kind::Danger, 110.0).clicked() {
-                    self.act_command(Command::Uninstall { app: id.to_string() });
+                    if cli_only {
+                        self.settings.cli_apps.remove(id);
+                    }
+                    self.act_command(if cli_only {
+                        Command::UninstallCli { app: id.to_string() }
+                    } else {
+                        Command::Uninstall { app: id.to_string() }
+                    });
                     close = true;
                 }
                 if widgets::button(ui, tl!("Cancel"), Kind::Secondary, 90.0).clicked() {

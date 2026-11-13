@@ -102,8 +102,6 @@
 	Only when I ask	手動で確認したときのみ
 	Automatically download and install updates	更新を自動でダウンロードしてインストール
 	Ask for permission once when updating all apps	すべてのアプリを更新するときは権限を一度だけ求める
-	Install each app's command-line tool and keep it up to date	各アプリのコマンドラインツールをインストールし、最新の状態に保つ
-	The tool is installed the next time an app is installed or updated, and only if its release has one.	ツールは、アプリを次にインストールまたは更新するときにインストールされます。そのリリースにツールが含まれている場合に限ります。
 	To use the tools in Terminal, add this line to your shell's start-up file:	ターミナルでツールを使うには、次の行をシェルの起動ファイルに追加してください:
 	Notify me when an installed app has an update	インストール済みアプリに更新があるときに通知する
 	Include pre-releases (betas and release candidates)	プレリリース（ベータ版とリリース候補）を含める
@@ -455,3 +453,9 @@ anicraft	Classic tweens with eight easing presets and custom ease curves, plus s
 	Unlock version?	バージョンの固定を解除しますか？
 	{app} is pinned to {version}. Follow the latest release instead?	{app} は {version} に固定されています。代わりに最新リリースを使用しますか？
 	Unlock	固定を解除
+	Install command-line tool and keep it up to date	コマンドラインツールをインストールして最新の状態に保つ
+	Install or repair command-line tool	コマンドラインツールをインストールまたは修復
+	Choose command-line tools in each app's menu. Enabled tools are kept up to date with their apps.	各アプリのメニューでコマンドラインツールを選択できます。有効にしたツールはアプリと一緒に更新されます。
+	Uninstall command-line tool…	コマンドラインツールをアンインストール…
+	Uninstall command-line tool?	コマンドラインツールをアンインストールしますか？
+	Only the command-line tool will be removed. Your documents and settings stay.	コマンドラインツールのみが削除されます。ドキュメントと設定は保持されます。

@@ -98,8 +98,6 @@
 	Only when I ask	Только по запросу
 	Automatically download and install updates	Автоматически скачивать и устанавливать обновления
 	Ask for permission once when updating all apps	Запрашивать разрешение один раз при обновлении всех приложений
-	Install each app's command-line tool and keep it up to date	Устанавливать инструмент командной строки каждого приложения и поддерживать его актуальным
-	The tool is installed the next time an app is installed or updated, and only if its release has one.	Инструмент устанавливается при следующей установке или обновлении приложения и только если в его выпуске он есть.
 	To use the tools in Terminal, add this line to your shell's start-up file:	Чтобы использовать инструменты в Терминале, добавьте эту строку в файл запуска вашей оболочки:
 	Notify me when an installed app has an update	Уведомлять, когда у установленного приложения есть обновление
 	Include pre-releases (betas and release candidates)	Включать предварительные релизы (бета и RC)
@@ -448,3 +446,9 @@ anicraft	Classic tweens with eight easing presets and custom ease curves, plus s
 	Unlock version?	Разблокировать версию?
 	{app} is pinned to {version}. Follow the latest release instead?	Для {app} закреплена версия {version}. Перейти на последнюю версию?
 	Unlock	Разблокировать
+	Install command-line tool and keep it up to date	Устанавливать инструмент командной строки и обновлять его
+	Install or repair command-line tool	Установить или восстановить инструмент командной строки
+	Choose command-line tools in each app's menu. Enabled tools are kept up to date with their apps.	Выберите инструменты командной строки в меню каждого приложения. Включённые инструменты обновляются вместе с приложениями.
+	Uninstall command-line tool…	Удалить инструмент командной строки…
+	Uninstall command-line tool?	Удалить инструмент командной строки?
+	Only the command-line tool will be removed. Your documents and settings stay.	Будет удалён только инструмент командной строки. Ваши документы и настройки сохранятся.

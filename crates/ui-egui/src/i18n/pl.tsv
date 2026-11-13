@@ -101,8 +101,6 @@
 	Only when I ask	Tylko kiedy zapytam
 	Automatically download and install updates	Automatycznie pobieraj i instaluj aktualizacje
 	Ask for permission once when updating all apps	Pytaj o uprawnienia tylko raz przy aktualizacji wszystkich aplikacji
-	Install each app's command-line tool and keep it up to date	Instaluj narzędzie wiersza poleceń każdej aplikacji i utrzymuj je w aktualnej wersji
-	The tool is installed the next time an app is installed or updated, and only if its release has one.	Narzędzie zostanie zainstalowane przy następnej instalacji lub aktualizacji aplikacji, o ile jej wydanie je zawiera.
 	To use the tools in Terminal, add this line to your shell's start-up file:	Aby używać narzędzi w Terminalu, dodaj ten wiersz do pliku startowego powłoki:
 	Notify me when an installed app has an update	Powiadom mnie o aktualizacjach dla zainstalowanych aplikacji
 	Include pre-releases (betas and release candidates)	Uwzględnij wersje przedpremierowe (beta i wersje kandydujące)
@@ -454,3 +452,9 @@ anicraft	Classic tweens with eight easing presets and custom ease curves, plus s
 	Unlock version?	Odblokować wersję?
 	{app} is pinned to {version}. Follow the latest release instead?	Aplikacja {app} jest przypięta do wersji {version}. Zamiast tego śledzić najnowsze wydanie?
 	Unlock	Odblokuj
+	Install command-line tool and keep it up to date	Instaluj narzędzie wiersza poleceń i aktualizuj je
+	Install or repair command-line tool	Zainstaluj lub napraw narzędzie wiersza poleceń
+	Choose command-line tools in each app's menu. Enabled tools are kept up to date with their apps.	Wybierz narzędzia wiersza poleceń w menu każdej aplikacji. Włączone narzędzia są aktualizowane razem z aplikacjami.
+	Uninstall command-line tool…	Odinstaluj narzędzie wiersza poleceń…
+	Uninstall command-line tool?	Odinstalować narzędzie wiersza poleceń?
+	Only the command-line tool will be removed. Your documents and settings stay.	Usunięte zostanie tylko narzędzie wiersza poleceń. Dokumenty i ustawienia zostaną zachowane.

@@ -434,7 +434,9 @@ impl NativeBackend {
     /// Starts the job, or returns `false` without starting one: the app is unknown, doesn't run
     /// on this platform, is already running a job, or the launcher is restarting into an update.
     fn start_job(&self, app_id: &str, work: Work) -> bool {
-        let uninstall = matches!(work, Work::Uninstall);
+        let uninstall = matches!(work, Work::Uninstall | Work::UninstallCli);
+        let cli_cleanup = matches!(work, Work::UninstallCli);
+        let cli_only = matches!(work, Work::InstallCli);
         let Some(app) = CraftApp::by_id(app_id) else { return false };
         if self.platform.is_some_and(|p| !app.runs_on(p.os)) {
             return false;
@@ -468,26 +470,44 @@ impl NativeBackend {
             let job = job;
             let existing = shared.installed.lock().unwrap_or_else(PoisonError::into_inner).get(app.id).cloned();
             let record = shared.manifest.lock().unwrap_or_else(PoisonError::into_inner).apps.get(app.id).cloned();
-            let result = if uninstall {
+            let result = if cli_only {
+                run_cli_install(app, &shared, &paths, http.as_ref(), platform, &options, &stop)
+            } else if uninstall {
                 shared.emit(Event::Progress { app: app.id.to_string(), phase: JobPhase::Removing });
                 let mut phase = |phase| shared.emit(Event::Progress { app: app.id.to_string(), phase });
-                match &existing {
-                    Some(inst) => install::uninstall(app, inst, record.as_ref(), &paths, &stop, &mut phase).map(|()| {
-                        let mut m = shared.manifest.lock().unwrap_or_else(PoisonError::into_inner);
-                        let removed_app = m.apps.remove(app.id).is_some();
-                        let removed_cli = remove_cli_tool(&paths, &mut m, app.id);
-                        if removed_app || removed_cli {
-                            let _ = m.save(&paths.manifest());
-                        }
-                        format!("{} was removed", app.name)
-                    }),
+                let removal = match &existing {
+                    _ if cli_cleanup => Ok(()),
+                    Some(inst) => install::uninstall(app, inst, record.as_ref(), &paths, &stop, &mut phase),
+                    None if record.is_some() || shared.manifest.lock().unwrap_or_else(PoisonError::into_inner).cli.contains_key(app.id) => Ok(()),
                     None => Err(format!("{} isn't installed", app.name)),
-                }
+                };
+                removal.and_then(|()| {
+                    let mut m = shared.manifest.lock().unwrap_or_else(PoisonError::into_inner);
+                    let mut updated = m.clone();
+                    let removed_app = !cli_cleanup && updated.apps.remove(app.id).is_some();
+                    let removed_cli = remove_cli_tool(&paths, &mut updated, app);
+                    let removed =
+                        if cli_cleanup { format!("{} command-line tool was removed", app.name) } else { format!("{} was removed", app.name) };
+                    if removed_app || matches!(removed_cli, Ok(true)) {
+                        updated
+                            .save(&paths.manifest())
+                            .map_err(|e| format!("{removed}, but its removal record couldn't be saved ({e}); its record was kept for retry."))?;
+                        *m = updated;
+                    }
+                    removed_cli.map_err(|e| {
+                        if cli_cleanup {
+                            format!("{} command-line tool couldn't be removed ({e}); its record was kept for retry.", app.name)
+                        } else {
+                            format!("{} was removed, but its command-line tool couldn't be removed ({e}); its record was kept for retry.", app.name)
+                        }
+                    })?;
+                    Ok(removed)
+                })
             } else {
                 let (approved, batch) = match &work {
                     Work::Replace(path) => (Some(path.as_str()), None),
                     Work::Install(batch) => (None, batch.clone()),
-                    Work::Uninstall => (None, None),
+                    Work::Uninstall | Work::UninstallCli | Work::InstallCli => (None, None),
                 };
                 let r = run_install(
                     app,
@@ -518,7 +538,9 @@ impl NativeBackend {
             let latest = shared.latest.lock().unwrap_or_else(PoisonError::into_inner).get(app.id).cloned();
             let result = match (result, latest) {
                 (Err(e), Some(release))
-                    if !uninstall && release.version.as_ref().is_some_and(|v| landed_despite(&e, existing.as_ref(), found.as_ref(), v)) =>
+                    if !uninstall
+                        && !cli_only
+                        && release.version.as_ref().is_some_and(|v| landed_despite(&e, existing.as_ref(), found.as_ref(), v)) =>
                 {
                     log::warn!("{}: {e}; the new version is installed all the same", app.id);
                     Ok(installed_text(app, existing.is_some(), &release))
@@ -632,6 +654,8 @@ enum Work {
     Install(Option<crate::queue::Gather>),
     /// Install over the path the user agreed to overwrite (see [`Command::Replace`]).
     Replace(String),
+    InstallCli,
+    UninstallCli,
     Uninstall,
 }
 
@@ -886,82 +910,117 @@ fn run_install(
         }
     }
     let mut text = installed_text(app, existing.is_some(), &release);
-    text.push_str(&install_cli_tool(app, shared, paths, platform, options, &release, &mut job));
+    if options.cli_apps.contains(app.id) && platform.os == Os::MacOs {
+        match install_cli_tool(app, shared, paths, platform, &release, &mut job) {
+            Ok(note) => text.push_str(&format!(" ({note})")),
+            Err(e) => text.push_str(&format!(" (its command-line tool wasn't installed: {e})")),
+        }
+    }
     Ok(text)
 }
 
-/// macOS, when the option is on: the app's command-line tool at the release's version, installed
-/// with the app and updated with it. A tool that can't be installed never fails the app's install:
-/// the note says what happened. A release that publishes no tool adds nothing, and leaves a tool
-/// installed earlier where it is, the note naming its version.
+/// Install only the CLI matching the installed app; never reinstall or change the GUI app.
+fn run_cli_install(
+    app: &CraftApp,
+    shared: &Shared,
+    paths: &Paths,
+    http: Option<&Http>,
+    platform: Option<Platform>,
+    options: &BackendOptions,
+    stop: &Stop,
+) -> Result<String, String> {
+    let manifest = shared.manifest.lock().unwrap_or_else(PoisonError::into_inner).clone();
+    let existing = crate::detect::detect(app, &manifest, &crate::detect::Snapshot::take());
+    let release = shared.latest.lock().unwrap_or_else(PoisonError::into_inner).get(app.id).cloned();
+    let release = cli_install_release(app, release, existing.as_ref(), platform, options)?;
+    let mut phase = |phase| shared.emit(Event::Progress { app: app.id.to_string(), phase });
+    let mut job = Job {
+        http: http.ok_or("secure connections aren't available on this system")?,
+        paths,
+        stop,
+        phase: &mut phase,
+        install_locations: &options.install_locations,
+        replace: false,
+        approved_path: None,
+        downgrade: None,
+        batch: None,
+    };
+    install_cli_tool(app, shared, paths, platform.ok_or("this system isn't supported")?, &release, &mut job)
+}
+
+fn cli_install_release(
+    app: &CraftApp,
+    release: Option<Release>,
+    existing: Option<&Installed>,
+    platform: Option<Platform>,
+    options: &BackendOptions,
+) -> Result<Release, String> {
+    if !platform.is_some_and(|p| p.os == Os::MacOs) || !options.cli_apps.contains(app.id) {
+        return Err("Enable this app's command-line tool on macOS before installing it.".into());
+    }
+    let release = release.ok_or("Check for updates before installing the command-line tool.")?;
+    let track = options.versions.get(app.id).unwrap_or(&VersionTrack::Stable);
+    if !release_matches_track(&release, track, options.prereleases) {
+        return Err("Check for updates after changing the selected version before installing the command-line tool.".into());
+    }
+    if release.version.is_none() || existing.and_then(|i| i.version.as_ref()) != release.version.as_ref() {
+        return Err("Install the selected app version before installing its matching command-line tool.".into());
+    }
+    Ok(release)
+}
+
+/// A missing artifact keeps any previous CLI and reports its version; GUI installs stay usable.
 #[cfg_attr(not(unix), allow(unused_variables))]
 fn install_cli_tool(
     app: &CraftApp,
     shared: &Shared,
     paths: &Paths,
     platform: Platform,
-    options: &BackendOptions,
     release: &Release,
     job: &mut Job<'_>,
-) -> String {
+) -> Result<String, String> {
     #[cfg(unix)]
     {
-        use artcraft_launcher_core::Os;
-        if !(options.install_cli && platform.os == Os::MacOs) {
-            return String::new();
-        }
-        // The portable folder moves with the executable, but the PATH line the settings show names the standard one.
         if crate::paths::portable_root().is_some() {
-            return " (its command-line tool isn't installed in portable mode)".to_string();
+            return Err("command-line tools aren't installed in portable mode".into());
         }
         let existing = shared.manifest.lock().unwrap_or_else(PoisonError::into_inner).cli.get(app.id).cloned();
         let Some(asset) = install::cli_tool::asset(app, release, platform) else {
-            return match existing {
-                Some(old) if old.version != release.version_label() => {
-                    format!(" (its command-line tool stays at {}: this release has none)", old.version)
-                }
-                _ => String::new(),
-            };
+            return Err(match existing {
+                Some(old) => format!("this release has no command-line tool; the installed tool stays at {}", old.version),
+                None => "this release has no command-line tool for this platform".into(),
+            });
         };
         let mut run = crate::process::run_with_output;
-        match install::cli_tool::install(app, release, asset, existing.as_ref(), job, &mut run) {
-            Ok(record) => {
-                let mut m = shared.manifest.lock().unwrap_or_else(PoisonError::into_inner);
-                m.cli.insert(app.id.to_string(), record.clone());
-                match m.save(&paths.manifest()) {
-                    Ok(()) => " and its command-line tool".to_string(),
-                    Err(e) => {
-                        // A tool that isn't recorded can't be removed later: take it away again.
-                        m.cli.remove(app.id);
-                        if let Err(removal) = install::cli_tool::remove(paths, &record) {
-                            log::warn!("{}: command-line tool: {removal}", app.name);
-                        }
-                        log::warn!("{}: couldn't save the command-line tool's record: {e}", app.name);
-                        format!(" (its command-line tool wasn't installed: couldn't save its record ({e}))")
-                    }
-                }
-            }
-            Err(e) => {
-                log::warn!("{}: command-line tool: {e}", app.name);
-                format!(" (its command-line tool wasn't installed: {e})")
-            }
-        }
+        let mut persist = |record: &crate::manifest::CliRecord| {
+            let mut manifest = shared.manifest.lock().unwrap_or_else(PoisonError::into_inner);
+            save_cli_record(&mut manifest, &paths.manifest(), app.id, record)
+        };
+        install::cli_tool::install(app, release, asset, existing.as_ref(), job, &mut run, &mut persist)?;
+        Ok(format!("{} command-line tool {} was installed", app.name, release.version_label()))
     }
     #[cfg(not(unix))]
-    String::new()
+    Err("command-line tool installation is only available on macOS".into())
+}
+
+#[cfg(unix)]
+fn save_cli_record(manifest: &mut Manifest, path: &std::path::Path, app: &str, record: &crate::manifest::CliRecord) -> Result<(), String> {
+    let mut updated = manifest.clone();
+    updated.cli.insert(app.to_string(), record.clone());
+    updated.save(path)?;
+    *manifest = updated;
+    Ok(())
 }
 
 /// Removes the command-line tool the launcher installed for `id`, and its record. Whether the
 /// manifest changed. A tool that can't be removed keeps its record, so a later removal can try again.
 #[cfg_attr(not(unix), allow(unused_variables))]
-fn remove_cli_tool(paths: &Paths, manifest: &mut crate::manifest::Manifest, id: &str) -> bool {
-    let Some(record) = manifest.cli.get(id) else { return false };
+fn remove_cli_tool(paths: &Paths, manifest: &mut crate::manifest::Manifest, app: &CraftApp) -> Result<bool, String> {
+    let Some(record) = manifest.cli.get(app.id) else { return Ok(false) };
     #[cfg(unix)]
-    if let Err(e) = install::cli_tool::remove(paths, record) {
-        log::warn!("{id}: command-line tool: {e}");
-        return false;
-    }
-    manifest.cli.remove(id).is_some()
+    install::cli_tool::remove(paths, app, record)?;
+    manifest.cli.remove(app.id);
+    Ok(true)
 }
 
 /// Whether an install may write over what is at its destination.
@@ -1146,7 +1205,15 @@ fn publish_detected(app: &CraftApp, found: Option<Installed>, shared: &Shared, p
     let _reporting = shared.reporting.lock().unwrap_or_else(PoisonError::into_inner);
     shared.store_detected(app.id, found.as_ref());
     let installable = installable_event(app, shared, platform, system);
-    shared.emit_all(installable.into_iter().chain([Event::Detected { app: app.id.to_string(), installed: found }]));
+    let (app_managed, managed) = {
+        let manifest = shared.manifest.lock().unwrap_or_else(PoisonError::into_inner);
+        (manifest.apps.contains_key(app.id), manifest.cli.contains_key(app.id))
+    };
+    shared.emit_all(installable.into_iter().chain([
+        Event::Detected { app: app.id.to_string(), installed: found },
+        Event::AppManaged { app: app.id.to_string(), managed: app_managed },
+        Event::CliManaged { app: app.id.to_string(), managed },
+    ]));
 }
 
 /// Tells the UI whether `app` has a paused download waiting, or a finished one to install, and
@@ -1605,12 +1672,18 @@ impl Backend for NativeBackend {
             Command::Install { app } => {
                 self.start_job(&app, Work::Install(None));
             }
+            Command::InstallCli { app } => {
+                self.start_job(&app, Work::InstallCli);
+            }
             Command::InstallAll { apps } => self.install_all(&apps),
             Command::Replace { app, path } => {
                 self.start_job(&app, Work::Replace(path));
             }
             Command::Uninstall { app } => {
                 self.start_job(&app, Work::Uninstall);
+            }
+            Command::UninstallCli { app } => {
+                self.start_job(&app, Work::UninstallCli);
             }
             Command::Pause { app } => {
                 if let Some(stop) = self.shared.jobs.lock().unwrap_or_else(PoisonError::into_inner).get(&app) {
@@ -1864,6 +1937,205 @@ mod tests {
         release.prerelease = true;
         assert!(release_matches_track(&release, &VersionTrack::Nightly, false));
         assert!(!release_matches_track(&release, &VersionTrack::Stable, false));
+    }
+
+    #[test]
+    fn cli_only_install_requires_per_app_consent_and_the_installed_release() {
+        let app = CraftApp::by_id(APP).unwrap();
+        let mac = Some(Platform { os: Os::MacOs, arch: Arch::Arm64 });
+        let release = Release { tag: "v0.5.0".into(), version: version::parse("0.5.0"), ..release("0.5.0") };
+        let installed = copy_of("0.5.0", InstallSource::MacApp, "/Applications/PhotoCraft.app");
+        let mut options = BackendOptions::default();
+        let plan = |options: &BackendOptions, existing: Option<&Installed>, platform| {
+            cli_install_release(app, Some(release.clone()), existing, platform, options)
+        };
+        assert!(plan(&options, Some(&installed), mac).is_err());
+        options.cli_apps.insert(APP.into());
+        assert_eq!(plan(&options, Some(&installed), mac).unwrap(), release);
+        assert!(plan(&options, None, mac).is_err());
+        assert!(plan(&options, Some(&installed), Some(Platform { os: Os::Linux, arch: Arch::X64 })).is_err());
+        assert!(plan(&options, Some(&copy_of("0.4.0", InstallSource::MacApp, "/app")), mac).is_err());
+        let unknown = Installed { version: None, ..installed.clone() };
+        assert!(plan(&options, Some(&unknown), mac).is_err());
+        options.versions.insert(APP.into(), VersionTrack::Pinned("v0.4.0".into()));
+        assert!(plan(&options, Some(&installed), mac).is_err());
+        options.versions.clear();
+        options.cli_apps.clear();
+        options.cli_apps.insert("pdfcraft".into());
+        assert!(plan(&options, Some(&installed), mac).is_err());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn failed_cli_record_save_keeps_the_previous_record_in_memory_and_on_disk() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("installed.json");
+        let old = crate::manifest::CliRecord {
+            version: "0.4.0".into(),
+            folder: dir.path().join("cli/photocraft"),
+            link: dir.path().join("cli/bin/photocraft-cli"),
+            installed_at: 1,
+        };
+        let new = crate::manifest::CliRecord { version: "0.5.0".into(), ..old.clone() };
+        let mut manifest = Manifest::default();
+        save_cli_record(&mut manifest, &path, APP, &old).unwrap();
+        let previous = manifest.clone();
+        let blocked = dir.path().join("blocked");
+        std::fs::write(&blocked, "not a directory").unwrap();
+        assert!(save_cli_record(&mut manifest, &blocked.join("installed.json"), APP, &new).is_err());
+        assert_eq!(manifest, previous);
+        assert_eq!(Manifest::load(&path), previous);
+        save_cli_record(&mut manifest, &path, APP, &new).unwrap();
+        assert_eq!(manifest.cli.get(APP), Some(&new));
+        assert_eq!(Manifest::load(&path), manifest);
+    }
+
+    #[test]
+    fn detection_reports_cli_cleanup_even_without_an_installed_gui() {
+        let dir = tempfile::tempdir().unwrap();
+        let platform = Platform { os: Os::MacOs, arch: Arch::Arm64 };
+        let mut backend = backend(dir.path(), platform, None);
+        let app = CraftApp::by_id(APP).unwrap();
+        backend.shared.manifest.lock().unwrap().cli.insert(
+            APP.into(),
+            crate::manifest::CliRecord {
+                version: "0.5.0".into(),
+                folder: backend.paths.cli().join(APP),
+                link: backend.paths.cli_bin().join(format!("{APP}-cli")),
+                installed_at: 1,
+            },
+        );
+        publish_detected(app, None, &backend.shared, Some(platform));
+        let events = backend.poll();
+        assert!(events.iter().any(|e| matches!(e, Event::Detected { app, installed: None } if app == APP)));
+        assert!(events.iter().any(|e| matches!(e, Event::CliManaged { app, managed: true } if app == APP)));
+        backend.shared.manifest.lock().unwrap().cli.remove(APP);
+        publish_detected(app, None, &backend.shared, Some(platform));
+        assert!(backend.poll().iter().any(|e| matches!(e, Event::CliManaged { app, managed: false } if app == APP)));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn cli_only_removal_keeps_a_gui_detected_after_the_cleanup_dialog_opened() {
+        let dir = tempfile::tempdir().unwrap();
+        let platform = Platform { os: Os::MacOs, arch: Arch::Arm64 };
+        let mut backend = backend(dir.path(), platform, None);
+        let gui = dir.path().join("PhotoCraft.app");
+        std::fs::write(&gui, "GUI must stay").unwrap();
+        let gui_record = crate::manifest::Record {
+            version: "0.5.0".into(),
+            kind: PackageKind::Dmg,
+            path: gui.clone(),
+            installed_at: 1,
+            files: vec![],
+            needs_root: false,
+        };
+        let cli = crate::manifest::CliRecord {
+            version: "0.5.0".into(),
+            folder: backend.paths.cli().join(APP),
+            link: backend.paths.cli_bin().join(format!("{APP}-cli")),
+            installed_at: 1,
+        };
+        std::fs::create_dir_all(&cli.folder).unwrap();
+        std::fs::create_dir_all(backend.paths.cli_bin()).unwrap();
+        std::fs::write(cli.folder.join(format!("{APP}-cli")), "CLI").unwrap();
+        std::os::unix::fs::symlink(cli.folder.join(format!("{APP}-cli")), &cli.link).unwrap();
+        {
+            let mut manifest = backend.shared.manifest.lock().unwrap();
+            manifest.apps.insert(APP.into(), gui_record.clone());
+            manifest.cli.insert(APP.into(), cli.clone());
+            manifest.save(&backend.paths.manifest()).unwrap();
+        }
+        backend.shared.installed.lock().unwrap().insert(APP.into(), copy_of("0.5.0", InstallSource::MacApp, gui.to_str().unwrap()));
+        backend.send(Command::UninstallCli { app: APP.into() });
+        wait_until(|| backend.shared.events.lock().unwrap().iter().any(|event| matches!(event, Event::JobFinished { app, .. } if app == APP)));
+        assert!(backend.poll().iter().any(|event| matches!(event, Event::JobFinished { app, result: Ok(_) } if app == APP)));
+        assert_eq!(std::fs::read_to_string(gui).unwrap(), "GUI must stay");
+        let manifest = Manifest::load(&backend.paths.manifest());
+        assert_eq!(manifest.apps.get(APP), Some(&gui_record));
+        assert!(!manifest.cli.contains_key(APP));
+        assert!(!cli.folder.exists());
+        assert!(std::fs::symlink_metadata(cli.link).is_err());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_failed_removal_record_save_keeps_cleanup_retryable_in_memory_and_on_disk() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = tempfile::tempdir().unwrap();
+        let platform = Platform { os: Os::MacOs, arch: Arch::Arm64 };
+        let mut backend = backend(dir.path(), platform, None);
+        let cli = crate::manifest::CliRecord {
+            version: "0.5.0".into(),
+            folder: backend.paths.cli().join(APP),
+            link: backend.paths.cli_bin().join(format!("{APP}-cli")),
+            installed_at: 1,
+        };
+        std::fs::create_dir_all(&cli.folder).unwrap();
+        std::fs::create_dir_all(backend.paths.cli_bin()).unwrap();
+        std::fs::write(cli.folder.join(format!("{APP}-cli")), "CLI").unwrap();
+        std::os::unix::fs::symlink(cli.folder.join(format!("{APP}-cli")), &cli.link).unwrap();
+        {
+            let mut manifest = backend.shared.manifest.lock().unwrap();
+            manifest.cli.insert(APP.into(), cli.clone());
+            manifest.save(&backend.paths.manifest()).unwrap();
+        }
+        let manifest_path = backend.paths.manifest();
+        let parent = manifest_path.parent().unwrap();
+        let permissions = std::fs::metadata(parent).unwrap().permissions();
+        std::fs::set_permissions(parent, std::fs::Permissions::from_mode(0o500)).unwrap();
+        backend.send(Command::UninstallCli { app: APP.into() });
+        wait_until(|| backend.shared.events.lock().unwrap().iter().any(|event| matches!(event, Event::JobFinished { app, .. } if app == APP)));
+        std::fs::set_permissions(parent, permissions).unwrap();
+        assert!(backend.poll().iter().any(|event| matches!(event, Event::JobFinished { app, result: Err(_) } if app == APP)));
+        assert!(!cli.folder.exists(), "filesystem removal succeeded before the record save failed");
+        assert_eq!(backend.shared.manifest.lock().unwrap().cli.get(APP), Some(&cli));
+        assert_eq!(Manifest::load(&manifest_path).cli.get(APP), Some(&cli));
+        backend.send(Command::UninstallCli { app: APP.into() });
+        wait_until(|| backend.shared.events.lock().unwrap().iter().any(|event| matches!(event, Event::JobFinished { app, .. } if app == APP)));
+        assert!(backend.poll().iter().any(|event| matches!(event, Event::JobFinished { app, result: Ok(_) } if app == APP)));
+        assert!(!backend.shared.manifest.lock().unwrap().cli.contains_key(APP));
+        assert!(!Manifest::load(&manifest_path).cli.contains_key(APP));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn gui_record_cleanup_retries_a_failed_save_without_a_cli_or_installed_app() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = tempfile::tempdir().unwrap();
+        let mut backend = backend(dir.path(), Platform { os: Os::MacOs, arch: Arch::Arm64 }, None);
+        let record = crate::manifest::Record {
+            version: "0.5.0".into(),
+            kind: PackageKind::Dmg,
+            path: dir.path().join("already-removed.app"),
+            installed_at: 1,
+            files: vec![],
+            needs_root: false,
+        };
+        {
+            let mut manifest = backend.shared.manifest.lock().unwrap();
+            manifest.apps.insert(APP.into(), record.clone());
+            manifest.save(&backend.paths.manifest()).unwrap();
+        }
+        let manifest_path = backend.paths.manifest();
+        let parent = manifest_path.parent().unwrap();
+        let permissions = std::fs::metadata(parent).unwrap().permissions();
+        std::fs::set_permissions(parent, std::fs::Permissions::from_mode(0o500)).unwrap();
+        backend.send(Command::Uninstall { app: APP.into() });
+        wait_until(|| backend.shared.events.lock().unwrap().iter().any(|event| matches!(event, Event::JobFinished { app, .. } if app == APP)));
+        std::fs::set_permissions(parent, permissions).unwrap();
+        let events = backend.poll();
+        assert!(events.iter().any(|event| matches!(event, Event::JobFinished { app, result: Err(_) } if app == APP)));
+        assert!(events.iter().any(|event| matches!(event, Event::AppManaged { app, managed: true } if app == APP)));
+        assert_eq!(backend.shared.manifest.lock().unwrap().apps.get(APP), Some(&record));
+        assert_eq!(Manifest::load(&manifest_path).apps.get(APP), Some(&record));
+        backend.send(Command::Uninstall { app: APP.into() });
+        wait_until(|| backend.shared.events.lock().unwrap().iter().any(|event| matches!(event, Event::JobFinished { app, .. } if app == APP)));
+        let events = backend.poll();
+        assert!(events.iter().any(|event| matches!(event, Event::JobFinished { app, result: Ok(_) } if app == APP)));
+        assert!(events.iter().any(|event| matches!(event, Event::AppManaged { app, managed: false } if app == APP)));
+        assert!(!backend.shared.manifest.lock().unwrap().apps.contains_key(APP));
+        assert!(!Manifest::load(&manifest_path).apps.contains_key(APP));
     }
 
     #[test]

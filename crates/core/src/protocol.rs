@@ -4,7 +4,7 @@
 //! The UI sends [`Command`]s and drains [`Event`]s once per frame, so backends do their work on
 //! threads (desktop) or futures (web) and never block a frame.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{Deserialize, Serialize};
 
@@ -29,6 +29,10 @@ pub enum Command {
     Install {
         app: String,
     },
+    /// Install or repair only an opted-in app's CLI at its installed release version (macOS).
+    InstallCli {
+        app: String,
+    },
     /// Install or update every app in `apps` together: their downloads run as for [`Command::Install`],
     /// but where the platform needs a permission prompt (polkit on Linux, elevation on Windows)
     /// the batch shares one prompt instead of one per app. Apps already running a job are left out.
@@ -43,6 +47,10 @@ pub enum Command {
         path: String,
     },
     Uninstall {
+        app: String,
+    },
+    /// Remove only the launcher's managed CLI, regardless of whether the GUI app is installed.
+    UninstallCli {
         app: String,
     },
     /// Start an installed app, passing `args` (the user's launch flags) on its command line.
@@ -105,8 +113,8 @@ pub const MAC_CLI_PATH_LINE: &str = "export PATH=\"$HOME/Library/Application Sup
 #[serde(default)]
 pub struct BackendOptions {
     pub install_locations: InstallLocations,
-    /// macOS: install each app's command-line tool with it, and keep it at the app's version (off by default).
-    pub install_cli: bool,
+    /// macOS: apps whose separate command-line tools are installed and updated with them.
+    pub cli_apps: BTreeSet<String>,
     /// Package formats to install, best first (empty: the platform default).
     pub kinds: Vec<PackageKind>,
     /// Per-app version choices; an absent entry follows stable releases.
@@ -234,6 +242,16 @@ pub enum Event {
     Detected {
         app: String,
         installed: Option<Installed>,
+    },
+    /// A launcher-managed app record remains, including when removal bookkeeping needs a retry.
+    AppManaged {
+        app: String,
+        managed: bool,
+    },
+    /// A launcher-managed CLI record remains, including when app removal needs cleanup retried.
+    CliManaged {
+        app: String,
+        managed: bool,
     },
     Progress {
         app: String,

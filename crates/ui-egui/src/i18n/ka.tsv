@@ -96,8 +96,6 @@
 	Only when I ask	მხოლოდ მოთხოვნისას
 	Automatically download and install updates	განახლებების ავტომატური ჩამოტვირთვა და ინსტალაცია
 	Ask for permission once when updating all apps	ყველა აპლიკაციის განახლებისას ნებართვის მოთხოვნა მხოლოდ ერთხელ
-	Install each app's command-line tool and keep it up to date	თითოეული აპლიკაციის ბრძანების ხაზის ხელსაწყოს დაყენება და განახლებულად შენახვა
-	The tool is installed the next time an app is installed or updated, and only if its release has one.	ხელსაწყო დაინსტალირდება აპლიკაციის შემდეგი ინსტალაციის ან განახლებისას, თუ მის გამოშვებაში ის შედის.
 	To use the tools in Terminal, add this line to your shell's start-up file:	ხელსაწყოების ტერმინალში გამოსაყენებლად დაამატეთ ეს ხაზი თქვენი shell-ის გაშვების ფაილში:
 	Notify me when an installed app has an update	შეტყობინება, როცა დაინსტალირებულ აპლიკაციას განახლება აქვს
 	Include pre-releases (betas and release candidates)	წინასწარი ვერსიების ჩართვა (ბეტა-ვერსიები და გამოშვების კანდიდატები)
@@ -451,3 +449,9 @@ anicraft	Classic tweens with eight easing presets and custom ease curves, plus s
 	Unlock version?	განიბლოკოს ვერსია?
 	{app} is pinned to {version}. Follow the latest release instead?	{app} ფიქსირებულია {version} ვერსიაზე. სანაცვლოდ გამოიყენოთ უახლესი გამოშვება?
 	Unlock	განბლოკვა
+	Install command-line tool and keep it up to date	ბრძანების ხაზის ხელსაწყოს დაყენება და განახლება
+	Install or repair command-line tool	ბრძანების ხაზის ხელსაწყოს დაყენება ან შეკეთება
+	Choose command-line tools in each app's menu. Enabled tools are kept up to date with their apps.	აირჩიეთ ბრძანების ხაზის ხელსაწყოები თითოეული აპლიკაციის მენიუში. ჩართული ხელსაწყოები აპლიკაციებთან ერთად განახლდება.
+	Uninstall command-line tool…	ბრძანების ხაზის ხელსაწყოს წაშლა…
+	Uninstall command-line tool?	წაიშალოს ბრძანების ხაზის ხელსაწყო?
+	Only the command-line tool will be removed. Your documents and settings stay.	წაიშლება მხოლოდ ბრძანების ხაზის ხელსაწყო. თქვენი დოკუმენტები და პარამეტრები შენარჩუნდება.

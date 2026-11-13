@@ -295,8 +295,14 @@ pub fn parse_cli_asset_name(name: &str, stems: &[&str]) -> Option<(String, Strin
 /// macOS releases publish it beside the disk image (the disk image holds only the app). `None` when the
 /// release has none for this platform; checksums, signatures and the app's own packages never match.
 pub fn pick_cli_asset<'a>(release: &'a Release, stems: &[&str], platform: Platform) -> Option<&'a Asset> {
-    let parsed: Vec<(&Asset, String)> =
-        release.assets.iter().filter_map(|a| parse_cli_asset_name(&a.name, stems).map(|(_, target)| (a, target))).collect();
+    let parsed: Vec<(&Asset, String)> = release
+        .assets
+        .iter()
+        .filter_map(|a| {
+            let (named, target) = parse_cli_asset_name(&a.name, stems)?;
+            release.version.as_ref().is_none_or(|v| crate::version::parse(&named).as_ref() == Some(v)).then_some((a, target))
+        })
+        .collect();
     platform.tokens().iter().find_map(|token| parsed.iter().find(|(_, t)| t == token).map(|(a, _)| *a))
 }
 
@@ -561,6 +567,17 @@ mod tests {
         "pdfcraft-web-0.20.0.zip",
         "SHA256SUMS.txt",
     ];
+
+    #[test]
+    fn a_published_release_selects_its_separate_cli_and_never_another_version() {
+        let mut release =
+            crate::release::parse_github_release(include_str!("../tests/fixtures/pdfcraft-release.json"), "storytold/pdfcraft").unwrap();
+        let mac = Platform { os: Os::MacOs, arch: Arch::Arm64 };
+        assert_eq!(pick_cli_asset(&release, &["pdfcraft"], mac).unwrap().name, "pdfcraft-cli-0.20.0-macos-universal.zip");
+        assert_eq!(pick_asset(&release, &["pdfcraft"], mac, &[PackageKind::Dmg]).unwrap().0.name, "pdfcraft-0.20.0-macos-universal.dmg");
+        release.version = crate::version::parse("0.21.0");
+        assert!(pick_cli_asset(&release, &["pdfcraft"], mac).is_none());
+    }
 
     #[test]
     fn macos_gets_the_command_line_tools_universal_zip_on_either_processor() {

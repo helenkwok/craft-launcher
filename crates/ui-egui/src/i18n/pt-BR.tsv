@@ -88,8 +88,6 @@
 	Only when I ask	Apenas quando eu pedir
 	Automatically download and install updates	Baixar e instalar atualizações automaticamente
 	Ask for permission once when updating all apps	Pedir permissão uma única vez ao atualizar todos os aplicativos
-	Install each app's command-line tool and keep it up to date	Instalar a ferramenta de linha de comando de cada aplicativo e mantê-la atualizada
-	The tool is installed the next time an app is installed or updated, and only if its release has one.	A ferramenta é instalada na próxima vez que um aplicativo for instalado ou atualizado, e somente se a versão dele incluir uma.
 	To use the tools in Terminal, add this line to your shell's start-up file:	Para usar as ferramentas no Terminal, adicione esta linha ao arquivo de inicialização do seu shell:
 	Notify me when an installed app has an update	Notificar quando um aplicativo instalado tiver atualização
 	Include pre-releases (betas and release candidates)	Incluir versões de pré-lançamento (betas e RC)
@@ -440,3 +438,9 @@ anicraft	Classic tweens with eight easing presets and custom ease curves, plus s
 	Unlock version?	Desbloquear versão?
 	{app} is pinned to {version}. Follow the latest release instead?	{app} está fixado na versão {version}. Usar a versão mais recente?
 	Unlock	Desbloquear
+	Install command-line tool and keep it up to date	Instalar a ferramenta de linha de comando e mantê-la atualizada
+	Install or repair command-line tool	Instalar ou reparar a ferramenta de linha de comando
+	Choose command-line tools in each app's menu. Enabled tools are kept up to date with their apps.	Escolha as ferramentas de linha de comando no menu de cada aplicativo. As ferramentas ativadas são atualizadas junto com seus aplicativos.
+	Uninstall command-line tool…	Desinstalar a ferramenta de linha de comando…
+	Uninstall command-line tool?	Desinstalar a ferramenta de linha de comando?
+	Only the command-line tool will be removed. Your documents and settings stay.	Somente a ferramenta de linha de comando será removida. Seus documentos e configurações serão mantidos.

@@ -4411,3 +4411,237 @@ fn launcher_version_padlock_confirms_and_returns_to_settings() {
     h.get_by_label("Launcher version");
     assert!(sent.borrow().iter().any(|c| matches!(c, Command::Configure(options) if options.launcher_version == VersionTrack::Stable)));
 }
+
+/// CLI opt-in is per app and sends its configuration before the separate install command.
+#[test]
+fn command_line_tools_are_opted_in_per_app_and_install_without_reinstalling_the_app() {
+    let mut ev = events();
+    let mut published = release("lightcraft", "0.4.0", NOW);
+    published.assets.push(Asset {
+        name: "lightcraft-cli-0.4.0-macos-universal.zip".into(),
+        url: "https://github.com/storytold/lightcraft/releases/download/v0.4.0/lightcraft-cli-0.4.0-macos-universal.zip".into(),
+        size: 1024,
+        sha256: Some("0".repeat(64)),
+    });
+    ev.push(Event::Latest { app: "lightcraft".into(), latest: LatestRelease::Found(published), from: Origin::GitHub });
+    let (mut h, sent) = harness_with(ev, ViewMode::Grid, egui::Theme::Dark, true, 1.0);
+    h.run_steps(6);
+    h.get_by_label("More actions for LightCraft").click();
+    h.run_steps(3);
+    sent.borrow_mut().clear();
+    h.get_by_label("Install command-line tool and keep it up to date").click();
+    h.run_steps(3);
+    assert!(h.state().as_ref().unwrap().settings.cli_apps.contains("lightcraft"));
+    assert!(!h.state().as_ref().unwrap().settings.cli_apps.contains("photocraft"));
+    let commands = sent.borrow();
+    assert!(matches!(commands.first(), Some(Command::Configure(options)) if options.cli_apps.contains("lightcraft")));
+    assert_eq!(commands.get(1), Some(&Command::InstallCli { app: "lightcraft".into() }));
+    assert!(!commands.iter().any(|command| matches!(command, Command::Install { .. })));
+    drop(commands);
+    let settings = &h.state().as_ref().unwrap().settings;
+    let restored: Settings = serde_json::from_str(&serde_json::to_string(settings).unwrap()).unwrap();
+    assert_eq!(restored.cli_apps, settings.cli_apps);
+    h.get_by_label("More actions for LightCraft").click();
+    h.run_steps(3);
+    sent.borrow_mut().clear();
+    h.get_by_label("Install or repair command-line tool").click();
+    h.run_steps(3);
+    assert_eq!(*sent.borrow(), [Command::InstallCli { app: "lightcraft".into() }]);
+    h.get_by_label("More actions for LightCraft").click();
+    h.run_steps(3);
+    sent.borrow_mut().clear();
+    h.get_by_label("Install command-line tool and keep it up to date").click();
+    h.run_steps(3);
+    assert!(h.state().as_ref().unwrap().settings.cli_apps.is_empty());
+    assert!(!sent.borrow().iter().any(|command| matches!(command, Command::Uninstall { .. } | Command::InstallCli { .. })));
+    h.get_by_label("More actions for PhotoCraft").click();
+    h.run_steps(3);
+    assert!(h.query_by_label("Install command-line tool and keep it up to date").is_none(), "no CLI artifact is available");
+}
+
+#[test]
+fn cli_install_requires_a_matching_installed_app_and_platform() {
+    let app = artcraft_launcher_core::CraftApp::by_id("photocraft").unwrap();
+    let mut entry = artcraft_launcher_ui_egui::model::AppEntry::new(app);
+    let mut published = release("photocraft", "0.5.0", NOW);
+    published.assets.push(Asset {
+        name: "photocraft-cli-0.5.0-macos-universal.zip".into(),
+        url: "https://github.com/storytold/photocraft/releases/download/v0.5.0/photocraft-cli-0.5.0-macos-universal.zip".into(),
+        size: 1024,
+        sha256: None,
+    });
+    entry.latest = Some(LatestRelease::Found(published));
+    let mac = Some(Platform { os: Os::MacOs, arch: Arch::Arm64 });
+    assert!(entry.has_cli(mac));
+    assert!(!entry.can_install_cli(mac));
+    entry.installed = Some(Installed {
+        version: version::parse("0.4.1"),
+        source: InstallSource::MacApp,
+        location: "/Applications/PhotoCraft.app".into(),
+        package: None,
+        externally_managed: false,
+        origin: None,
+        installation: None,
+    });
+    assert!(!entry.can_install_cli(mac));
+    entry.installed.as_mut().unwrap().version = version::parse("0.5.0");
+    assert!(entry.can_install_cli(mac));
+    assert!(!entry.has_cli(Some(Platform { os: Os::Windows, arch: Arch::X64 })));
+    entry.job = Some(JobPhase::Installing);
+    assert!(!entry.can_install_cli(mac));
+    assert!(Settings::default().cli_apps.is_empty());
+}
+
+/// Managed CLIs can be removed separately, including after GUI removal or while detection changes.
+#[test]
+fn an_orphaned_command_line_tool_can_be_removed_with_confirmation() {
+    let mut ev = events();
+    ev.push(Event::Detected { app: "lightcraft".into(), installed: None });
+    ev.push(Event::CliManaged { app: "lightcraft".into(), managed: true });
+    let (mut h, sent, queue) = versions_harness(Machine { more: ev, ..Default::default() }, None, vec![]);
+    h.run_steps(6);
+    assert!(h.state().as_ref().unwrap().settings.cli_apps.is_empty());
+    h.get_by_label("More actions for LightCraft").scroll_to_me();
+    h.run_steps(3);
+    h.get_by_label("More actions for LightCraft").click();
+    h.run_steps(3);
+    sent.borrow_mut().clear();
+    h.get_by_label("Uninstall command-line tool…").click();
+    h.run_steps(3);
+    h.get_by_label("Only the command-line tool will be removed. Your documents and settings stay.");
+    assert!(!sent.borrow().iter().any(|command| matches!(command, Command::Uninstall { .. } | Command::UninstallCli { .. })));
+    h.get_by_label("Cancel").click();
+    h.run_steps(3);
+    assert!(!sent.borrow().iter().any(|command| matches!(command, Command::Uninstall { .. } | Command::UninstallCli { .. })));
+    h.get_by_label("More actions for LightCraft").click();
+    h.run_steps(3);
+    h.get_by_label("Uninstall command-line tool…").click();
+    h.run_steps(3);
+    queue.borrow_mut().push(Event::Detected {
+        app: "lightcraft".into(),
+        installed: Some(Installed {
+            version: version::parse("0.4.0"),
+            source: InstallSource::MacApp,
+            location: "/Applications/LightCraft.app".into(),
+            package: None,
+            externally_managed: false,
+            origin: None,
+            installation: None,
+        }),
+    });
+    h.run_steps(3);
+    h.get_by_label("Only the command-line tool will be removed. Your documents and settings stay.");
+    h.get_by_role_and_label(egui::accesskit::Role::Button, "Uninstall").click();
+    h.run_steps(3);
+    assert_eq!(*sent.borrow(), [Command::UninstallCli { app: "lightcraft".into() }]);
+    assert!(!sent.borrow().iter().any(|command| matches!(command, Command::Install { .. })));
+
+    // The GUI is now installed: its CLI still has an independent removal action.
+    h.get_by_label("More actions for LightCraft").scroll_to_me();
+    h.run_steps(3);
+    h.get_by_label("More actions for LightCraft").click();
+    h.run_steps(3);
+    h.get_by_label("Launch options…");
+    h.get_by_label("Uninstall command-line tool…").click();
+    h.run_steps(3);
+    sent.borrow_mut().clear();
+    h.get_by_role_and_label(egui::accesskit::Role::Button, "Uninstall").click();
+    h.run_steps(3);
+    assert_eq!(*sent.borrow(), [Command::UninstallCli { app: "lightcraft".into() }]);
+    h.get_by_label("More actions for LightCraft").scroll_to_me();
+    h.run_steps(3);
+    h.get_by_label("More actions for LightCraft").click();
+    h.run_steps(3);
+    h.get_by_label("Launch options…");
+
+    let mut ev = events();
+    ev.push(Event::Detected { app: "lightcraft".into(), installed: None });
+    ev.push(Event::CliManaged { app: "lightcraft".into(), managed: true });
+    ev.push(Event::CliManaged { app: "lightcraft".into(), managed: false });
+    let (mut h, _) = harness_with(ev, ViewMode::Grid, egui::Theme::Dark, true, 1.0);
+    h.run_steps(6);
+    h.get_by_label("More actions for LightCraft").scroll_to_me();
+    h.run_steps(3);
+    h.get_by_label("More actions for LightCraft").click();
+    h.run_steps(3);
+    assert!(h.query_by_label("Uninstall command-line tool…").is_none());
+}
+
+#[test]
+fn retained_command_line_tools_keep_path_guidance_after_opt_out() {
+    let mut ev = events();
+    ev.push(Event::CliManaged { app: "lightcraft".into(), managed: true });
+    let (mut h, _) = harness_with(ev, ViewMode::Grid, egui::Theme::Dark, true, 1.0);
+    h.run_steps(6);
+    assert!(h.state().as_ref().unwrap().settings.cli_apps.is_empty());
+    h.get_by_label("Settings").click();
+    h.run_steps(3);
+    h.get_by_label("To use the tools in Terminal, add this line to your shell's start-up file:");
+    h.get_by_label(artcraft_launcher_core::protocol::MAC_CLI_PATH_LINE);
+}
+
+/// Failed removal bookkeeping stays retryable even when neither GUI nor CLI files remain.
+#[test]
+fn a_retained_app_record_keeps_confirmed_uninstall_cleanup_available() {
+    for managed in [true, false] {
+        let mut ev = events();
+        ev.push(Event::Detected { app: "lightcraft".into(), installed: None });
+        ev.push(Event::AppManaged { app: "lightcraft".into(), managed: true });
+        ev.push(Event::AppManaged { app: "lightcraft".into(), managed });
+        let (mut h, sent) = harness_with(ev, ViewMode::Grid, egui::Theme::Dark, true, 1.0);
+        h.run_steps(6);
+        h.get_by_label("More actions for LightCraft").scroll_to_me();
+        h.run_steps(3);
+        h.get_by_label("More actions for LightCraft").click();
+        h.run_steps(3);
+        assert!(h.query_by_label("Uninstall command-line tool…").is_none());
+        if !managed {
+            assert!(h.query_by_label("Uninstall…").is_none());
+            continue;
+        }
+        sent.borrow_mut().clear();
+        h.get_by_label("Uninstall…").click();
+        h.run_steps(3);
+        assert!(!sent.borrow().iter().any(|command| matches!(command, Command::Uninstall { .. })));
+        h.get_by_role_and_label(egui::accesskit::Role::Button, "Uninstall").click();
+        h.run_steps(3);
+        assert_eq!(*sent.borrow(), [Command::Uninstall { app: "lightcraft".into() }]);
+    }
+}
+
+#[test]
+fn explicit_cli_removal_disables_upkeep_only_after_confirmation_and_keeps_it_off_on_failure() {
+    let (mut h, sent, queue) =
+        versions_harness(Machine { more: vec![Event::CliManaged { app: "lightcraft".into(), managed: true }], ..Default::default() }, None, vec![]);
+    h.state_mut().as_mut().unwrap().settings.cli_apps.insert("lightcraft".into());
+    h.run_steps(3);
+    h.get_by_label("More actions for LightCraft").click();
+    h.run_steps(3);
+    h.get_by_label("Uninstall command-line tool…").click();
+    h.run_steps(3);
+    sent.borrow_mut().clear();
+    h.get_by_label("Cancel").click();
+    h.run_steps(3);
+    assert!(h.state().as_ref().unwrap().settings.cli_apps.contains("lightcraft"));
+    assert!(sent.borrow().is_empty());
+
+    h.get_by_label("More actions for LightCraft").click();
+    h.run_steps(3);
+    h.get_by_label("Uninstall command-line tool…").click();
+    h.run_steps(3);
+    h.get_by_role_and_label(egui::accesskit::Role::Button, "Uninstall").click();
+    h.run_steps(3);
+    assert!(h.state().as_ref().unwrap().settings.cli_apps.is_empty());
+    let commands = sent.borrow();
+    assert!(matches!(commands.first(), Some(Command::Configure(options)) if !options.cli_apps.contains("lightcraft")));
+    assert_eq!(commands.get(1), Some(&Command::UninstallCli { app: "lightcraft".into() }));
+    assert_eq!(commands.len(), 2);
+    drop(commands);
+
+    queue.borrow_mut().push(Event::JobFinished { app: "lightcraft".into(), result: Err("couldn't remove the managed tool".into()) });
+    h.run_steps(3);
+    assert!(h.state().as_ref().unwrap().settings.cli_apps.is_empty());
+    h.get_by_label("More actions for LightCraft").click();
+    h.run_steps(3);
+    h.get_by_label("Uninstall command-line tool…");
+}

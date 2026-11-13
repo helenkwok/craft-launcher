@@ -111,6 +111,7 @@ pub(crate) enum UiAction {
 pub(crate) enum Dialog {
     Notes(String),
     ConfirmUninstall(String),
+    ConfirmUninstallCli(String),
     UnlockVersion { app: String, tag: String },
     Install { app: String, folder: String },
     Replace { app: String, path: String },
@@ -127,6 +128,7 @@ impl Dialog {
         match self {
             Dialog::Notes(id) => ("notes", id),
             Dialog::ConfirmUninstall(id) => ("uninstall", id),
+            Dialog::ConfirmUninstallCli(id) => ("uninstall-cli", id),
             Dialog::UnlockVersion { app, .. } => ("unlock-version", app),
             Dialog::Install { app, .. } => ("install", app),
             Dialog::Replace { app, .. } => ("replace", app),
@@ -402,7 +404,12 @@ impl LauncherUi {
                 continue;
             }
             match action {
-                UiAction::Command(command) => self.backend.send(command.clone()),
+                UiAction::Command(command) => {
+                    if matches!(command, Command::InstallCli { .. } | Command::UninstallCli { .. }) {
+                        self.configure();
+                    }
+                    self.backend.send(command.clone());
+                }
                 UiAction::Launch(id) => {
                     let flags = self.settings.launch_flags.get(id).map_or("", String::as_str);
                     // The dialog only saves flags that split, but the settings file can be edited by hand.
@@ -464,7 +471,7 @@ impl LauncherUi {
         let options = BackendOptions {
             kinds: self.settings.preferred_kinds.clone(),
             prereleases: self.settings.prereleases,
-            install_cli: self.settings.install_cli,
+            cli_apps: self.settings.cli_apps.clone(),
             versions: self.settings.versions.clone(),
             launcher_version: self.settings.launcher_version.clone(),
             install_locations: self.settings.install_locations.clone(),
@@ -592,6 +599,18 @@ impl LauncherUi {
                     e.detected = true;
                 }
                 true
+            }
+            Event::AppManaged { app, managed } => {
+                if let Some(entry) = self.entry_mut(&app) {
+                    entry.app_managed = managed;
+                }
+                false
+            }
+            Event::CliManaged { app, managed } => {
+                if let Some(entry) = self.entry_mut(&app) {
+                    entry.cli_managed = managed;
+                }
+                false
             }
             Event::Progress { app, phase } => {
                 self.on_progress(app, phase);

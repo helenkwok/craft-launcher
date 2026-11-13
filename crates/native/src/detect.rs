@@ -136,12 +136,13 @@ fn install_dir_keys(app: &CraftApp) -> Vec<String> {
 }
 
 /// Version from `<app> --version` output. Binaries print the machine id (`photocraft 0.7.0`),
-/// the display name (`SoundCraft 0.5.0`), or a former id (`printcraft 0.2.1` for PdfCraft).
-#[cfg_attr(not(any(target_os = "linux", target_os = "freebsd")), allow(dead_code))]
-fn parse_cli_version(line: &str, app: &CraftApp) -> Option<version::Version> {
+/// a `-cli` name (`photocraft-cli 0.7.0`), the display name (`SoundCraft 0.5.0`),
+/// or a former id (`printcraft 0.2.1` for PdfCraft).
+#[cfg_attr(not(unix), allow(dead_code))]
+pub(crate) fn parse_cli_version(line: &str, app: &CraftApp) -> Option<version::Version> {
     let line = line.trim();
     for prefix in app.stems().chain(std::iter::once(app.name)) {
-        if let Some(rest) = strip_cli_prefix(line, prefix)
+        if let Some(rest) = strip_cli_prefix(line, prefix).or_else(|| strip_cli_prefix(line, &format!("{prefix}-cli")))
             && let Some(tok) = rest.split_whitespace().next()
             && let Some(v) = version::parse(tok)
         {
@@ -996,6 +997,10 @@ mod tests {
         assert_eq!(parse_cli_version("SoundCraft 0.5.0", sound).unwrap().to_string(), "0.5.0");
         assert_eq!(parse_cli_version("printcraft 0.2.1", pdf).unwrap().to_string(), "0.2.1");
         assert_eq!(parse_cli_version("PdfCraft 0.6.0", pdf).unwrap().to_string(), "0.6.0");
+        assert_eq!(parse_cli_version("photocraft-cli 0.7.0 (dev build)", photo).unwrap().to_string(), "0.7.0");
+        assert_eq!(parse_cli_version("printcraft-cli 0.2.1", pdf).unwrap().to_string(), "0.2.1");
+        assert_eq!(parse_cli_version("PdfCraft-cli 0.6.0", pdf).unwrap().to_string(), "0.6.0");
+        assert!(parse_cli_version("pdfcraft-cli unknown", pdf).is_none());
         assert!(strip_cli_prefix("photocraft-cli 1.0.0", "photocraft").is_none());
     }
 

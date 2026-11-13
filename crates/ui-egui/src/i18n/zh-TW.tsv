@@ -76,8 +76,6 @@
 	Only when I ask	僅在我要求時
 	Automatically download and install updates	自動下載並安裝更新
 	Ask for permission once when updating all apps	更新所有應用程式時僅請求一次權限
-	Install each app's command-line tool and keep it up to date	安裝每個應用程式的命令列工具並保持更新
-	The tool is installed the next time an app is installed or updated, and only if its release has one.	此工具會在下次安裝或更新應用程式時安裝，且僅在該版本包含此工具時才會安裝。
 	To use the tools in Terminal, add this line to your shell's start-up file:	若要在終端機中使用這些工具，請將下面這一行加入 shell 的啟動檔：
 	Notify me when an installed app has an update	已安裝的應用程式有更新時通知我
 	Include pre-releases (betas and release candidates)	包含預先發行版（Beta 版與候選發行版）
@@ -411,3 +409,9 @@ anicraft	Classic tweens with eight easing presets and custom ease curves, plus s
 	Unlock version?	解除版本鎖定？
 	{app} is pinned to {version}. Follow the latest release instead?	{app} 已鎖定為 {version}。是否改為使用最新版本？
 	Unlock	解除鎖定
+	Install command-line tool and keep it up to date	安裝命令列工具並保持更新
+	Install or repair command-line tool	安裝或修復命令列工具
+	Choose command-line tools in each app's menu. Enabled tools are kept up to date with their apps.	在各應用程式的選單中選擇命令列工具。啟用的工具會隨應用程式一起更新。
+	Uninstall command-line tool…	解除安裝命令列工具…
+	Uninstall command-line tool?	解除安裝命令列工具？
+	Only the command-line tool will be removed. Your documents and settings stay.	只會移除命令列工具。您的文件和設定將會保留。

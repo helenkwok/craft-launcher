@@ -1332,8 +1332,23 @@ impl LauncherUi {
             }
             if manage && status.is_installed() {
                 self.menu_installed(ui, entry, status, reveal);
+            } else if manage && entry.app_managed {
+                ui.separator();
+                if ui.button(RichText::new(tl!("Uninstall…")).color(Tokens::get(ui.ctx()).bad)).clicked() {
+                    self.dialog = Some(Dialog::ConfirmUninstall(id.clone()));
+                    ui.close();
+                }
             }
-            if !manage {
+            if manage && entry.cli_managed {
+                ui.separator();
+                if ui.button(RichText::new(tl!("Uninstall command-line tool…")).color(Tokens::get(ui.ctx()).bad)).clicked() {
+                    self.dialog = Some(Dialog::ConfirmUninstallCli(id.clone()));
+                    ui.close();
+                }
+            }
+            if manage {
+                self.menu_cli(ui, entry);
+            } else {
                 self.menu_downloads(ui, entry);
             }
             // The drawer shows the links as buttons, so its menu leaves them out (but keeps Hide).
@@ -1352,6 +1367,31 @@ impl LauncherUi {
             self.menu_pin(ui, entry, &id);
             self.menu_hide(ui, entry, &id);
         });
+    }
+
+    fn menu_cli(&mut self, ui: &mut Ui, entry: &AppEntry) {
+        let id = entry.app.id;
+        let mut enabled = self.settings.cli_apps.contains(id);
+        let available = entry.has_cli(self.platform);
+        if !self.platform.is_some_and(|p| p.os == artcraft_launcher_core::Os::MacOs) || (!available && !enabled) {
+            return;
+        }
+        ui.separator();
+        if ui.checkbox(&mut enabled, tl!("Install command-line tool and keep it up to date")).changed() {
+            if enabled {
+                self.settings.cli_apps.insert(id.to_string());
+                if entry.can_install_cli(self.platform) {
+                    self.act_command(Command::InstallCli { app: id.to_string() });
+                }
+            } else {
+                self.settings.cli_apps.remove(id);
+            }
+            ui.close();
+        }
+        if enabled && entry.can_install_cli(self.platform) && ui.button(tl!("Install or repair command-line tool")).clicked() {
+            self.act_command(Command::InstallCli { app: id.to_string() });
+            ui.close();
+        }
     }
 
     /// Pin — or unpin — the app at the top of the list. Hidden apps are not offered Pin to top

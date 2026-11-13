@@ -1,0 +1,40 @@
+{
+  "tag_name": "v0.20.0",
+  "name": "PdfCraft v0.20.0",
+  "html_url": "https://github.com/storytold/pdfcraft/releases/tag/v0.20.0",
+  "published_at": "2026-11-09T12:10:51Z",
+  "prerelease": false,
+  "draft": false,
+  "assets": [
+    {
+      "name": "pdfcraft-0.20.0-macos-universal.dmg",
+      "size": 133235034,
+      "browser_download_url": "https://github.com/storytold/pdfcraft/releases/download/v0.20.0/pdfcraft-0.20.0-macos-universal.dmg",
+      "digest": "sha256:f44bea1466fcb6902effbad7e824fe59a70077c73ebd977e14e166585c447ce6"
+    },
+    {
+      "name": "pdfcraft-cli-0.20.0-linux-aarch64.tar.gz",
+      "size": 43258628,
+      "browser_download_url": "https://github.com/storytold/pdfcraft/releases/download/v0.20.0/pdfcraft-cli-0.20.0-linux-aarch64.tar.gz",
+      "digest": "sha256:8ae1196679f8da60c6bec7c61caf92904e6da2fd0a159147dd53f74805993d36"
+    },
+    {
+      "name": "pdfcraft-cli-0.20.0-linux-x86_64.tar.gz",
+      "size": 45009103,
+      "browser_download_url": "https://github.com/storytold/pdfcraft/releases/download/v0.20.0/pdfcraft-cli-0.20.0-linux-x86_64.tar.gz",
+      "digest": "sha256:a5b2967d057a12091f8ddaf5e247a608b16628ee0c9752c9c1fac286107dc238"
+    },
+    {
+      "name": "pdfcraft-cli-0.20.0-macos-universal.zip",
+      "size": 90555007,
+      "browser_download_url": "https://github.com/storytold/pdfcraft/releases/download/v0.20.0/pdfcraft-cli-0.20.0-macos-universal.zip",
+      "digest": "sha256:dd10f837318c3fce81f893a988de13efd7ba4be95e281f277cd7c23247aaa122"
+    },
+    {
+      "name": "SHA256SUMS.txt",
+      "size": 5463,
+      "browser_download_url": "https://github.com/storytold/pdfcraft/releases/download/v0.20.0/SHA256SUMS.txt",
+      "digest": "sha256:1f02ed34136596e9d117c92a17e043e3cf07152e440c32e55e15286dc54ebf2d"
+    }
+  ]
+}

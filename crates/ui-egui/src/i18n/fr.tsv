@@ -98,8 +98,6 @@
 	Only when I ask	Seulement à ma demande
 	Automatically download and install updates	Télécharger et installer les mises à jour automatiquement
 	Ask for permission once when updating all apps	Demander l'autorisation une seule fois lors de la mise à jour de toutes les applications
-	Install each app's command-line tool and keep it up to date	Installer l'outil en ligne de commande de chaque application et le garder à jour
-	The tool is installed the next time an app is installed or updated, and only if its release has one.	L'outil est installé lors de la prochaine installation ou mise à jour d'une application, et seulement si sa version en propose un.
 	To use the tools in Terminal, add this line to your shell's start-up file:	Pour utiliser les outils dans le Terminal, ajouter cette ligne au fichier de démarrage du shell :
 	Notify me when an installed app has an update	Me prévenir quand une application installée a une mise à jour
 	Include pre-releases (betas and release candidates)	Inclure les préversions (bêtas et versions candidates)
@@ -450,3 +448,9 @@ anicraft	Classic tweens with eight easing presets and custom ease curves, plus s
 	Unlock version?	Déverrouiller la version ?
 	{app} is pinned to {version}. Follow the latest release instead?	{app} est fixé à la version {version}. Suivre plutôt la dernière version ?
 	Unlock	Déverrouiller
+	Install command-line tool and keep it up to date	Installer l’outil en ligne de commande et le garder à jour
+	Install or repair command-line tool	Installer ou réparer l’outil en ligne de commande
+	Choose command-line tools in each app's menu. Enabled tools are kept up to date with their apps.	Choisissez les outils en ligne de commande dans le menu de chaque application. Les outils activés sont mis à jour avec leurs applications.
+	Uninstall command-line tool…	Désinstaller l’outil en ligne de commande…
+	Uninstall command-line tool?	Désinstaller l’outil en ligne de commande ?
+	Only the command-line tool will be removed. Your documents and settings stay.	Seul l’outil en ligne de commande sera supprimé. Vos documents et réglages sont conservés.

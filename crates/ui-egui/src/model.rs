@@ -13,6 +13,10 @@ pub struct AppEntry {
     pub app: &'static CraftApp,
     pub latest: Option<LatestRelease>,
     pub installed: Option<Installed>,
+    /// An app install record remains, even if its files have been removed.
+    pub app_managed: bool,
+    /// A CLI owned by the launcher remains, even if its app is absent.
+    pub cli_managed: bool,
     /// Detection has answered at least once.
     pub detected: bool,
     pub job: Option<JobPhase>,
@@ -31,7 +35,19 @@ pub struct AppEntry {
 
 impl AppEntry {
     pub fn new(app: &'static CraftApp) -> Self {
-        Self { app, latest: None, installed: None, detected: false, job: None, origin: None, paused: None, ready: false, installable: None }
+        Self {
+            app,
+            latest: None,
+            installed: None,
+            app_managed: false,
+            cli_managed: false,
+            detected: false,
+            job: None,
+            origin: None,
+            paused: None,
+            ready: false,
+            installable: None,
+        }
     }
 
     pub fn release(&self) -> Option<&Release> {
@@ -39,6 +55,25 @@ impl AppEntry {
             Some(LatestRelease::Found(r)) => Some(r),
             _ => None,
         }
+    }
+
+    pub fn has_cli(&self, platform: Option<Platform>) -> bool {
+        let (Some(release), Some(platform)) = (self.release(), platform) else { return false };
+        let stems: Vec<_> = self.app.stems().collect();
+        platform.os == artcraft_launcher_core::Os::MacOs
+            && self.app.mac_team.is_some()
+            && artcraft_launcher_core::platform::pick_cli_asset(release, &stems, platform).is_some()
+    }
+
+    /// A separate tool must match the installed app, never a newer or unknown version.
+    pub fn can_install_cli(&self, platform: Option<Platform>) -> bool {
+        self.job.is_none()
+            && self.has_cli(platform)
+            && self
+                .installed
+                .as_ref()
+                .and_then(|installed| installed.version.as_ref())
+                .is_some_and(|version| self.release().and_then(|release| release.version.as_ref()) == Some(version))
     }
 
     /// Whether the latest release has something for `platform`.

@@ -109,9 +109,9 @@ pub struct Settings {
     /// (Linux and Windows); off, each app's update asks on its own.
     #[serde(default)]
     pub batch_updates: bool,
-    /// macOS: install each app's command-line tool with it, and keep it at the app's version.
+    /// macOS: apps whose separate command-line tools are installed and updated with them.
     #[serde(default)]
-    pub install_cli: bool,
+    pub cli_apps: std::collections::BTreeSet<String>,
     /// Show a system notification when an installed app has an update.
     pub notify: bool,
     pub prereleases: bool,
@@ -261,7 +261,7 @@ impl Default for Settings {
             check_every: CheckEvery::Hour,
             auto_update: false,
             batch_updates: false,
-            install_cli: false,
+            cli_apps: Default::default(),
             notify: true,
             prereleases: false,
             versions: BTreeMap::new(),
