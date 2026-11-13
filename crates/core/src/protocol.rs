@@ -304,6 +304,11 @@ pub enum Event {
         path: String,
         download_again: bool,
     },
+    /// Discarding a retained download failed. This is not a job result and must not clear a newer job.
+    DownloadDiscardFailed {
+        app: String,
+        error: String,
+    },
     /// A job ended: `Ok` carries a short success message, `Err` what went wrong.
     JobFinished {
         app: String,

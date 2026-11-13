@@ -666,6 +666,10 @@ impl LauncherUi {
                 self.dialog = Some(Dialog::Replace { app, path, download_again });
                 false
             }
+            Event::DownloadDiscardFailed { error, .. } => {
+                self.toast(error, true);
+                false
+            }
             Event::JobFinished { app, result } => {
                 self.on_job_finished(app, result);
                 true

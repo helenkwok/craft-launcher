@@ -362,7 +362,7 @@ impl NativeBackend {
             } else {
                 planned_download(app, &shared, &paths, platform, &options).map(|(dest, _, size)| (dest, size))
             };
-            {
+            let failure = {
                 // Planning may probe for seconds; freeze the plan and job starts only for deletion.
                 let _reporting = shared.reporting.lock().unwrap_or_else(PoisonError::into_inner);
                 let current_options = shared.options.lock().unwrap_or_else(PoisonError::into_inner);
@@ -371,10 +371,15 @@ impl NativeBackend {
                     && !running.contains_key(app.id)
                     && shared.download_revision(app.id) == revision
                     && let Some((dest, size)) = download
-                    && let Err(error) = http::discard(&dest, size)
                 {
-                    log::warn!("{error}");
+                    http::discard(&dest, size).err()
+                } else {
+                    None
                 }
+            };
+            if let Some(error) = failure {
+                log::warn!("{error}");
+                shared.emit(Event::DownloadDiscardFailed { app: app.id.to_string(), error });
             }
             report_partial(app, &shared, &paths, platform);
         });
@@ -3390,6 +3395,42 @@ mod tests {
         assert!(!backend.shared.report_download(APP, old_revision, old_plan, None, false, None));
         assert!(backend.poll().is_empty());
         assert_eq!(backend.download_size(APP), Some(fresh));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_failed_discard_reports_the_error_before_retained_recovery_and_can_be_retried() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let Some(platform) = native_platform() else { return };
+        let dir = tempfile::tempdir().unwrap();
+        let mut backend = backend(dir.path(), platform, None);
+        let dest = keep_file(&backend);
+        let original = std::fs::read(&dest).unwrap();
+        std::fs::set_permissions(backend.paths.downloads(), std::fs::Permissions::from_mode(0o500)).unwrap();
+        backend.send(Command::Cancel { app: APP.into() });
+        let events = wait_for_app_download_report(&mut backend);
+        std::fs::set_permissions(backend.paths.downloads(), std::fs::Permissions::from_mode(0o700)).unwrap();
+        let error_at = events
+            .iter()
+            .position(|event| {
+                matches!(event, Event::DownloadDiscardFailed { app, error }
+            if app == APP && error.contains("couldn't discard") && error.contains(dest.to_str().unwrap()))
+            })
+            .expect("actionable discard error");
+        let recovery_at = events
+            .iter()
+            .position(|event| matches!(event, Event::ReadyToInstall { app, ready: true } if app == APP))
+            .expect("retained archive still offers retry");
+        assert!(error_at < recovery_at);
+        assert_eq!(std::fs::read(&dest).unwrap(), original);
+        assert!(!events.iter().any(|event| matches!(event, Event::JobFinished { app, .. } if app == APP)));
+
+        backend.send(Command::Cancel { app: APP.into() });
+        let events = wait_for_app_download_report(&mut backend);
+        assert!(!dest.exists());
+        assert!(!events.iter().any(|event| matches!(event, Event::DownloadDiscardFailed { app, .. } if app == APP)));
+        assert_eq!(last_ready(events), Some(false));
     }
 
     #[test]

@@ -1817,6 +1817,31 @@ fn cli_download_recovery_resumes_the_tool_without_reinstalling_its_app() {
 }
 
 #[test]
+fn a_late_discard_error_is_visible_without_clearing_a_new_job_or_starting_installs() {
+    let more = vec![
+        Event::CliPaused { app: "lightcraft".into(), download: Some(PausedDownload { done: 3, total: 10 }) },
+        Event::Progress { app: "lightcraft".into(), phase: JobPhase::Downloading { done: 4, total: 10 } },
+    ];
+    let (mut h, sent, queue) = versions_harness(Machine { more, ..Default::default() }, None, vec![]);
+    let pause_controls = h.query_all_by_label("Pause download").count();
+    assert!(pause_controls > 0);
+    h.state_mut().as_mut().unwrap().settings.auto_update = true;
+    sent.borrow_mut().clear();
+    let error = "couldn't discard the cached download (permission denied)";
+    queue.borrow_mut().push(Event::DownloadDiscardFailed { app: "lightcraft".into(), error: error.into() });
+    h.run_steps(3);
+    h.get_by_label(error);
+    assert_eq!(h.query_all_by_label("Pause download").count(), pause_controls, "a discard error must not finish the newer job");
+    assert!(
+        !sent.borrow().iter().any(|command| matches!(command, Command::Install { .. } | Command::InstallAll { .. } | Command::InstallCli { .. }))
+    );
+    h.state_mut().as_mut().unwrap().settings.auto_update = false;
+    queue.borrow_mut().push(Event::JobFinished { app: "lightcraft".into(), result: Err(CANCELLED.into()) });
+    h.run_steps(3);
+    h.get_by_label_contains("· 30%");
+}
+
+#[test]
 /// A kept download offers Retry install (which only opens install) and menu Download again
 /// (one ordered DownloadAgain job); apps without a kept download do not offer it.
 fn a_kept_download_offers_retry_install_and_download_again() {
