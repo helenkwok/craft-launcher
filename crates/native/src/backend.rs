@@ -173,13 +173,22 @@ impl Shared {
         self.download_sizes.lock().unwrap_or_else(PoisonError::into_inner).entry(app.to_string()).or_default().revision
     }
 
-    fn report_download(&self, app: &str, revision: u64, plan: Option<(PackageKind, u64)>, download: Option<PausedDownload>, ready: bool) -> bool {
+    fn report_download(
+        &self,
+        app: &str,
+        revision: u64,
+        plan: Option<(PackageKind, u64)>,
+        download: Option<PausedDownload>,
+        ready: bool,
+        cli_download: Option<PausedDownload>,
+    ) -> bool {
         {
             let mut sizes = self.download_sizes.lock().unwrap_or_else(PoisonError::into_inner);
             let Some(cached) = sizes.get_mut(app).filter(|cached| cached.revision == revision) else { return false };
             cached.plan = plan;
             let mut events = self.events.lock().unwrap_or_else(PoisonError::into_inner);
             events.push(Event::Paused { app: app.to_string(), download });
+            events.push(Event::CliPaused { app: app.to_string(), download: cli_download });
             events.push(Event::ReadyToInstall { app: app.to_string(), ready });
         }
         (self.waker)();
@@ -509,7 +518,7 @@ impl NativeBackend {
                     Work::Install(batch) => (None, batch.clone()),
                     Work::Uninstall | Work::UninstallCli | Work::InstallCli => (None, None),
                 };
-                let r = run_install(
+                run_install(
                     app,
                     &shared,
                     &paths,
@@ -522,14 +531,14 @@ impl NativeBackend {
                     approved,
                     source.as_deref(),
                     batch,
-                );
-                // Stopped by the connection rather than by the user: say so, and how to go on.
-                match r {
-                    Err(e) if e == PAUSED && stop.check().is_ok() => {
-                        Err("The download paused because the connection keeps dropping. Press Resume to continue where it stopped.".into())
-                    }
-                    other => other,
+                )
+            };
+            // Stopped by the connection rather than by the user: say so for either download.
+            let result = match result {
+                Err(e) if e == PAUSED && stop.check().is_ok() => {
+                    Err("The download paused because the connection keeps dropping. Press Resume to continue where it stopped.".into())
                 }
+                other => other,
             };
             // Look again: the result is whatever is on disk now.
             let manifest = shared.manifest.lock().unwrap_or_else(PoisonError::into_inner).clone();
@@ -1231,10 +1240,35 @@ fn report_partial(app: &CraftApp, shared: &Shared, paths: &Paths, platform: Opti
         let planned = planned_download(app, shared, paths, platform, &options);
         let download = planned.as_ref().and_then(|(dest, _, size)| Some(PausedDownload { done: http::partial_bytes(dest, *size)?, total: *size }));
         let ready = planned.as_ref().is_some_and(|(dest, _, size)| http::finished(dest, *size));
-        if shared.report_download(app.id, revision, planned.as_ref().map(|(_, kind, size)| (*kind, *size)), download, ready) {
+        let cli_download = kept_cli_download(app, shared, paths, platform, &options).map(|(_, download)| download);
+        if shared.report_download(app.id, revision, planned.as_ref().map(|(_, kind, size)| (*kind, *size)), download, ready, cli_download) {
             return;
         }
     }
+}
+
+/// CLI recovery uses its own artifact, including after a restart without an in-memory job.
+fn kept_cli_download(
+    app: &CraftApp,
+    shared: &Shared,
+    paths: &Paths,
+    platform: Option<Platform>,
+    options: &BackendOptions,
+) -> Option<(std::path::PathBuf, PausedDownload)> {
+    if crate::paths::portable_root().is_some() || app.mac_team.is_none() {
+        return None;
+    }
+    let release = shared.latest.lock().unwrap_or_else(PoisonError::into_inner).get(app.id).cloned();
+    let existing = shared.installed.lock().unwrap_or_else(PoisonError::into_inner).get(app.id).cloned();
+    let release = cli_install_release(app, release, existing.as_ref(), platform, options).ok()?;
+    let stems: Vec<_> = app.stems().collect();
+    let asset = artcraft_launcher_core::platform::pick_cli_asset(&release, &stems, platform?)?;
+    if !artcraft_launcher_core::release::valid_file_name(&asset.name) {
+        return None;
+    }
+    let dest = install::download_path(paths, asset);
+    let done = http::partial_bytes(&dest, asset.size).or_else(|| http::finished(&dest, asset.size).then_some(asset.size))?;
+    Some((dest, PausedDownload { done, total: asset.size }))
 }
 
 /// Where the planned download of `app` is kept, its package format and published size.
@@ -1696,15 +1730,27 @@ impl Backend for NativeBackend {
                     Some(stop) => stop.cancel(),
                     // A paused download, or one kept after a failed install: throw the file away.
                     None => {
-                        if let Some(def) = CraftApp::by_id(&app)
-                            && let Some((dest, _, size)) = planned_download(def, &self.shared, &self.paths, self.platform, &self.options())
-                        {
-                            http::discard(&dest, size);
+                        if let Some(def) = CraftApp::by_id(&app) {
+                            let options = self.options();
+                            if let Some((dest, _, size)) = planned_download(def, &self.shared, &self.paths, self.platform, &options) {
+                                http::discard(&dest, size);
+                            }
+                            report_partial(def, &self.shared, &self.paths, self.platform);
                         }
-                        self.shared.emit(Event::Paused { app: app.clone(), download: None });
-                        self.shared.emit(Event::ReadyToInstall { app, ready: false });
                     }
                 }
+            }
+            Command::DiscardCli { app } => {
+                let Some(def) = CraftApp::by_id(&app) else { return };
+                let running = self.shared.jobs.lock().unwrap_or_else(PoisonError::into_inner);
+                if running.contains_key(&app) {
+                    return;
+                }
+                if let Some((dest, download)) = kept_cli_download(def, &self.shared, &self.paths, self.platform, &self.options()) {
+                    http::discard(&dest, download.total);
+                }
+                drop(running);
+                report_partial(def, &self.shared, &self.paths, self.platform);
             }
             Command::Launch { app, args } => {
                 let Some(def) = CraftApp::by_id(&app) else { return };
@@ -2839,6 +2885,104 @@ mod tests {
         assert_eq!(backend.download_size(APP), plan);
     }
 
+    #[test]
+    fn paused_cli_download_is_recovered_from_disk_and_discard_preserves_gui_download() {
+        use std::io::Write;
+        use std::net::TcpListener;
+
+        let platform = Platform { os: Os::MacOs, arch: Arch::Arm64 };
+        let dir = tempfile::tempdir().unwrap();
+        let mut backend = backend(dir.path(), platform, None);
+        let app = CraftApp::by_id(APP).unwrap();
+        let body = vec![b'x'; 2 << 20];
+        let size = body.len() as u64;
+        let asset = Asset {
+            name: format!("{APP}-cli-0.5.0-macos-universal.zip"),
+            url: format!("https://github.com/storytold/{APP}/releases/download/v0.5.0/{APP}-cli-0.5.0-macos-universal.zip"),
+            size,
+            sha256: Some("0".repeat(64)),
+        };
+        let dest = install::download_path(&backend.paths, &asset);
+        std::fs::create_dir_all(backend.paths.downloads()).unwrap();
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            let _ = write!(stream, "HTTP/1.1 200 OK\r\nContent-Length: {size}\r\nConnection: close\r\n\r\n");
+            let _ = stream.write_all(&body);
+        });
+        let stop = Stop::default();
+        let error = Http::new()
+            .unwrap()
+            .download(&format!("http://{address}/tool.zip"), &dest, size, &"0".repeat(64), &stop, &mut |transfer| {
+                if matches!(transfer, http::Transfer::Bytes { done, .. } if done > 0) {
+                    stop.pause();
+                }
+            })
+            .unwrap_err();
+        server.join().unwrap();
+        assert_eq!(error, PAUSED);
+        let done = http::partial_bytes(&dest, size).unwrap();
+        assert!(done > 0 && done < size);
+
+        // Only the cached artifact is retained: no running job or in-memory work is restored.
+        let mut release = stable("0.5.0");
+        release.assets.push(asset);
+        backend.shared.latest.lock().unwrap().insert(APP.into(), release);
+        backend.shared.installed.lock().unwrap().insert(APP.into(), copy_of("0.5.0", InstallSource::Launcher, "/Applications/PhotoCraft.app"));
+        backend.shared.options.lock().unwrap().cli_apps.insert(APP.into());
+        let options = backend.options();
+        let (gui, _, gui_size) = planned_download(app, &backend.shared, &backend.paths, Some(platform), &options).unwrap();
+        let gui_partial = gui.with_file_name(format!("{}.{}.part", gui.file_name().unwrap().to_str().unwrap(), gui_size));
+        std::fs::write(&gui_partial, b"g").unwrap();
+        report_partial(app, &backend.shared, &backend.paths, Some(platform));
+        assert!(backend.poll().iter().any(|event| matches!(event, Event::CliPaused { app, download: Some(download) }
+            if app == APP && *download == PausedDownload { done, total: size })));
+
+        // A stale CLI control must not turn into a GUI discard after preferences or versions change.
+        backend.shared.options.lock().unwrap().cli_apps.remove(APP);
+        backend.send(Command::DiscardCli { app: APP.into() });
+        assert_eq!(http::partial_bytes(&dest, size), Some(done));
+        assert_eq!(std::fs::read(&gui_partial).unwrap(), b"g");
+        backend.shared.options.lock().unwrap().cli_apps.insert(APP.into());
+        let selected = backend.shared.latest.lock().unwrap().insert(APP.into(), stable("0.6.0")).unwrap();
+        backend.send(Command::DiscardCli { app: APP.into() });
+        assert_eq!(http::partial_bytes(&dest, size), Some(done));
+        assert_eq!(std::fs::read(&gui_partial).unwrap(), b"g");
+        backend.shared.latest.lock().unwrap().insert(APP.into(), selected);
+
+        // Nor may that stale control cancel any newly started job for the app.
+        let running = Arc::new(Stop::default());
+        backend.shared.jobs.lock().unwrap().insert(APP.into(), running.clone());
+        backend.send(Command::DiscardCli { app: APP.into() });
+        assert!(running.check().is_ok());
+        assert_eq!(http::partial_bytes(&dest, size), Some(done));
+        assert_eq!(std::fs::read(&gui_partial).unwrap(), b"g");
+        backend.shared.jobs.lock().unwrap().remove(APP);
+
+        backend.send(Command::DiscardCli { app: APP.into() });
+        assert_eq!(http::partial_bytes(&dest, size), None);
+        assert_eq!(std::fs::read(&gui_partial).unwrap(), b"g");
+        let events = backend.poll();
+        assert!(events.iter().any(|event| matches!(event, Event::CliPaused { app, download: None } if app == APP)));
+        assert!(events.iter().any(|event| matches!(event, Event::Paused { app, download: Some(_) } if app == APP)));
+
+        // Failed placement retains a complete archive; it offers the same CLI-only retry.
+        std::fs::write(&dest, vec![0u8; size as usize]).unwrap();
+        report_partial(app, &backend.shared, &backend.paths, Some(platform));
+        assert!(backend.poll().iter().any(|event| matches!(event, Event::CliPaused { app, download: Some(download) }
+            if app == APP && download.done == size && download.total == size)));
+        backend.send(Command::DiscardCli { app: APP.into() });
+        assert!(!dest.exists());
+        assert!(gui_partial.exists());
+
+        let revision = backend.shared.download_revision(APP);
+        backend.shared.invalidate_download_size(APP);
+        backend.poll();
+        assert!(!backend.shared.report_download(APP, revision, None, None, false, Some(PausedDownload { done: 1, total: size })));
+        assert!(!backend.poll().iter().any(|event| matches!(event, Event::CliPaused { .. })));
+    }
+
     /// Puts the planned download on disk, as a failed install leaves it.
     fn keep_file(backend: &NativeBackend) -> std::path::PathBuf {
         let app = CraftApp::by_id(APP).unwrap();
@@ -2921,7 +3065,7 @@ mod tests {
         // Configuration now replans off the UI thread; observe the new answer before testing stale reports.
         wait_until(|| backend.download_size(APP) == Some((PackageKind::PortableZip, 200)));
         backend.poll();
-        assert!(!backend.shared.report_download(APP, old_revision, Some((PackageKind::Msi, 100)), None, false));
+        assert!(!backend.shared.report_download(APP, old_revision, Some((PackageKind::Msi, 100)), None, false, None));
         assert!(!backend.poll().iter().any(|event| matches!(event, Event::Paused { app, .. } | Event::ReadyToInstall { app, .. } if app == APP)));
         assert_eq!(backend.download_size(APP), Some((PackageKind::PortableZip, 200)));
         backend.shared.installed.lock().unwrap().insert(
@@ -2993,7 +3137,7 @@ mod tests {
         let fresh = backend.download_size(APP).unwrap();
         assert_eq!(fresh.1, 300);
         backend.poll();
-        assert!(!backend.shared.report_download(APP, old_revision, old_plan, None, false));
+        assert!(!backend.shared.report_download(APP, old_revision, old_plan, None, false, None));
         assert!(backend.poll().is_empty());
         assert_eq!(backend.download_size(APP), Some(fresh));
     }
@@ -3102,15 +3246,15 @@ mod tests {
 
         publish_detected(CraftApp::by_id(APP).unwrap(), Some(copy("0.4.0")), &backend.shared, Some(platform));
         assert_eq!(backend.download_size(APP), None);
-        assert!(!backend.shared.report_download(APP, revision, plan, None, false));
+        assert!(!backend.shared.report_download(APP, revision, plan, None, false, None));
         let revision = backend.shared.download_revision(APP);
-        assert!(backend.shared.report_download(APP, revision, plan, None, false));
+        assert!(backend.shared.report_download(APP, revision, plan, None, false, None));
         publish_detected(CraftApp::by_id(APP).unwrap(), Some(copy("0.4.0")), &backend.shared, Some(platform));
         assert_eq!(backend.download_size(APP), plan);
 
         publish_detected(CraftApp::by_id(APP).unwrap(), Some(copy("0.5.0")), &backend.shared, Some(platform));
         assert_eq!(backend.download_size(APP), None);
-        assert!(!backend.shared.report_download(APP, revision, plan, None, false));
+        assert!(!backend.shared.report_download(APP, revision, plan, None, false, None));
     }
 
     #[test]

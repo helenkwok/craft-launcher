@@ -632,6 +632,12 @@ impl LauncherUi {
                 }
                 false
             }
+            Event::CliPaused { app, download } => {
+                if let Some(e) = self.entry_mut(&app) {
+                    e.cli_paused = download;
+                }
+                true
+            }
             Event::ReadyToInstall { app, ready } => {
                 if let Some(e) = self.entry_mut(&app) {
                     e.ready = ready;

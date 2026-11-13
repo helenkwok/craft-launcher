@@ -24,6 +24,8 @@ pub struct AppEntry {
     pub origin: Option<artcraft_launcher_core::protocol::Origin>,
     /// A download waiting to be resumed.
     pub paused: Option<PausedDownload>,
+    /// A separate CLI download; resuming must not reinstall the GUI app.
+    pub cli_paused: Option<PausedDownload>,
     /// A finished download waiting for another try at installing it.
     pub ready: bool,
     /// The backend's word on whether an install of the latest release over the installed copy
@@ -45,9 +47,14 @@ impl AppEntry {
             job: None,
             origin: None,
             paused: None,
+            cli_paused: None,
             ready: false,
             installable: None,
         }
+    }
+
+    pub fn paused_download(&self) -> Option<PausedDownload> {
+        self.cli_paused.or(self.paused)
     }
 
     pub fn release(&self) -> Option<&Release> {
@@ -159,7 +166,7 @@ pub fn status_text(status: &AppStatus, manage_apps: bool) -> (String, Tone) {
 
 /// [`status_text`], but saying so when a download is paused or reconnecting.
 pub fn entry_status_text(e: &AppEntry, status: &AppStatus, manage_apps: bool) -> (String, Tone) {
-    match (e.job, e.paused) {
+    match (e.job, e.paused_download()) {
         (Some(JobPhase::Reconnecting { .. }), _) => (t("Reconnecting…").to_string(), Tone::Warn),
         (Some(JobPhase::Downloading { .. }), _) if status.is_installed() => (t("Updating…").to_string(), Tone::Info),
         (Some(JobPhase::Downloading { .. }), _) => (t("Downloading…").to_string(), Tone::Info),

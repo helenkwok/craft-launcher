@@ -62,12 +62,16 @@ pub enum Command {
     Reveal {
         app: String,
     },
-    /// Pause a running download, keeping what's downloaded so far (`Install` resumes it).
+    /// Pause a running download, keeping what's downloaded so far (the same install command resumes it).
     Pause {
         app: String,
     },
     /// Stop a running download, or throw away a paused one or one kept after a failed install.
     Cancel {
+        app: String,
+    },
+    /// Discard only a retained CLI archive. Never cancel a running job or discard an app download.
+    DiscardCli {
         app: String,
     },
     /// Download the newer ArtCraft Launcher, put it in place and restart into it.
@@ -260,6 +264,11 @@ pub enum Event {
     /// A download is paused (by the user, by a lost connection, or left over from an earlier
     /// run) and can be resumed; `None` once there's no paused download.
     Paused {
+        app: String,
+        download: Option<PausedDownload>,
+    },
+    /// A separate CLI archive waiting for `InstallCli`, reconstructed from its cached file.
+    CliPaused {
         app: String,
         download: Option<PausedDownload>,
     },

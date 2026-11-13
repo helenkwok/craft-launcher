@@ -1793,6 +1793,30 @@ fn downloads_can_be_paused_resumed_and_discarded() {
 }
 
 #[test]
+fn cli_download_recovery_resumes_the_tool_without_reinstalling_its_app() {
+    for view in [ViewMode::Grid, ViewMode::Table] {
+        let mut ev = events();
+        ev.retain(|event| !matches!(event, Event::Paused { .. }));
+        ev.push(Event::Paused { app: "lightcraft".into(), download: Some(PausedDownload { done: 1, total: 10 }) });
+        ev.push(Event::CliPaused { app: "lightcraft".into(), download: Some(PausedDownload { done: 3, total: 10 }) });
+        ev.push(Event::JobFinished { app: "lightcraft".into(), result: Err(artcraft_launcher_core::protocol::PAUSED.into()) });
+        let (mut h, sent) = harness_with(ev, view, egui::Theme::Dark, true, 1.0);
+        h.state_mut().as_mut().unwrap().settings.cli_apps.insert("lightcraft".into());
+        h.run_steps(6);
+        h.get_by_label("Discard download").scroll_to_me();
+        h.run_steps(3);
+        sent.borrow_mut().clear();
+        h.get_by_label_contains("Resume").click();
+        h.run_steps(3);
+        assert_eq!(*sent.borrow(), [Command::InstallCli { app: "lightcraft".into() }]);
+        sent.borrow_mut().clear();
+        h.get_by_label("Discard download").click();
+        h.run_steps(3);
+        assert_eq!(*sent.borrow(), [Command::DiscardCli { app: "lightcraft".into() }]);
+    }
+}
+
+#[test]
 /// A kept download offers Retry install (which only opens install) and menu Download again
 /// (Cancel then Install); apps without a kept download do not offer it.
 fn a_kept_download_offers_retry_install_and_download_again() {
