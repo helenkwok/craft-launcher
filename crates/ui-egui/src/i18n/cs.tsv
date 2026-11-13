@@ -420,7 +420,8 @@ anicraft	Classic tweens with eight easing presets and custom ease curves, plus s
 	Unlock	Odemknout
 	Install command-line tool and keep it up to date	Instalovat nástroj příkazového řádku a udržovat ho aktuální
 	Install or repair command-line tool	Instalovat nebo opravit nástroj příkazového řádku
-	Choose command-line tools in each app's menu. Enabled tools are kept up to date with their apps.	Nástroje příkazového řádku vyberte v nabídce jednotlivých aplikací. Povolené nástroje se aktualizují spolu s aplikacemi.
+	Install command-line tools alongside apps by default	Ve výchozím nastavení instalovat nástroje příkazového řádku spolu s aplikacemi
+	Available tools are installed on the next app install or update. Change individual apps in their menus.	Dostupné nástroje se nainstalují při příští instalaci nebo aktualizaci aplikace. Nastavení jednotlivých aplikací změňte v jejich nabídkách.
 	Uninstall command-line tool…	Odinstalovat nástroj příkazového řádku…
 	Uninstall command-line tool?	Odinstalovat nástroj příkazového řádku?
 	Only the command-line tool will be removed. Your documents and settings stay.	Odstraní se pouze nástroj příkazového řádku. Vaše dokumenty a nastavení zůstanou zachovány.

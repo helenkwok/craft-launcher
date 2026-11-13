@@ -448,7 +448,8 @@ anicraft	Classic tweens with eight easing presets and custom ease curves, plus s
 	Unlock	Разблокировать
 	Install command-line tool and keep it up to date	Устанавливать инструмент командной строки и обновлять его
 	Install or repair command-line tool	Установить или восстановить инструмент командной строки
-	Choose command-line tools in each app's menu. Enabled tools are kept up to date with their apps.	Выберите инструменты командной строки в меню каждого приложения. Включённые инструменты обновляются вместе с приложениями.
+	Install command-line tools alongside apps by default	По умолчанию устанавливать инструменты командной строки вместе с приложениями
+	Available tools are installed on the next app install or update. Change individual apps in their menus.	Доступные инструменты будут установлены при следующей установке или обновлении приложения. Настройки отдельных приложений можно изменить в их меню.
 	Uninstall command-line tool…	Удалить инструмент командной строки…
 	Uninstall command-line tool?	Удалить инструмент командной строки?
 	Only the command-line tool will be removed. Your documents and settings stay.	Будет удалён только инструмент командной строки. Ваши документы и настройки сохранятся.

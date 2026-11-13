@@ -138,7 +138,11 @@ package or portable folder, the AppImage, or the `.deb`/`.rpm`) and reopens it.
 Updates use the same format an app was installed with. Every download is checked against the
 release's published SHA-256 before it is installed, and a running app is never replaced.
 
-On macOS, each app's **…** menu offers **Install command-line tool and keep it up to date**
+On macOS, Settings → Updates offers **Install command-line tools alongside apps by default**
+(off by default). Available tools are installed with the next app install or update, including
+for apps added to the catalog later. Individual app choices override this default; turning the
+default off preserves tools explicitly enabled in an app's menu and does not remove installed tools.
+Each app's **…** menu offers **Install command-line tool and keep it up to date**
 when its selected release publishes a matching CLI archive. The CLI is downloaded separately;
 it is never taken from the DMG. Enabling this option installs the CLI immediately when the app
 already has that release, and keeps it updated with later app installs, including **Update All**.

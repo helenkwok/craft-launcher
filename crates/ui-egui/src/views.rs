@@ -1371,20 +1371,16 @@ impl LauncherUi {
 
     fn menu_cli(&mut self, ui: &mut Ui, entry: &AppEntry) {
         let id = entry.app.id;
-        let mut enabled = self.settings.cli_apps.contains(id);
+        let mut enabled = self.settings.cli_enabled(id);
         let available = entry.has_cli(self.platform);
         if !self.platform.is_some_and(|p| p.os == artcraft_launcher_core::Os::MacOs) || (!available && !enabled) {
             return;
         }
         ui.separator();
         if ui.checkbox(&mut enabled, tl!("Install command-line tool and keep it up to date")).changed() {
-            if enabled {
-                self.settings.cli_apps.insert(id.to_string());
-                if entry.can_install_cli(self.platform) {
-                    self.act_command(Command::InstallCli { app: id.to_string() });
-                }
-            } else {
-                self.settings.cli_apps.remove(id);
+            self.settings.set_cli_enabled(id, enabled);
+            if enabled && entry.can_install_cli(self.platform) {
+                self.act_command(Command::InstallCli { app: id.to_string() });
             }
             ui.close();
         }

@@ -420,7 +420,8 @@ anicraft	Classic tweens with eight easing presets and custom ease curves, plus s
 	Unlock	解锁
 	Install command-line tool and keep it up to date	安装命令行工具并保持更新
 	Install or repair command-line tool	安装或修复命令行工具
-	Choose command-line tools in each app's menu. Enabled tools are kept up to date with their apps.	在各应用的菜单中选择命令行工具。启用的工具会随应用一起更新。
+	Install command-line tools alongside apps by default	默认随应用一起安装命令行工具
+	Available tools are installed on the next app install or update. Change individual apps in their menus.	可用工具将在下次安装或更新应用时安装。可在各应用的菜单中更改单独设置。
 	Uninstall command-line tool…	卸载命令行工具…
 	Uninstall command-line tool?	卸载命令行工具？
 	Only the command-line tool will be removed. Your documents and settings stay.	只会移除命令行工具。您的文档和设置将予以保留。

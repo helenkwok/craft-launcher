@@ -234,7 +234,7 @@ impl LauncherUi {
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if widgets::button(ui, tl!("Uninstall"), Kind::Danger, 110.0).clicked() {
                     if cli_only {
-                        self.settings.cli_apps.remove(id);
+                        self.settings.set_cli_enabled(id, false);
                     }
                     self.act_command(if cli_only {
                         Command::UninstallCli { app: id.to_string() }

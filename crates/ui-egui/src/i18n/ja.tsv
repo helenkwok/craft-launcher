@@ -455,7 +455,8 @@ anicraft	Classic tweens with eight easing presets and custom ease curves, plus s
 	Unlock	固定を解除
 	Install command-line tool and keep it up to date	コマンドラインツールをインストールして最新の状態に保つ
 	Install or repair command-line tool	コマンドラインツールをインストールまたは修復
-	Choose command-line tools in each app's menu. Enabled tools are kept up to date with their apps.	各アプリのメニューでコマンドラインツールを選択できます。有効にしたツールはアプリと一緒に更新されます。
+	Install command-line tools alongside apps by default	既定でアプリと一緒にコマンドラインツールをインストールする
+	Available tools are installed on the next app install or update. Change individual apps in their menus.	利用可能なツールは、次回のアプリのインストールまたは更新時にインストールされます。アプリごとの設定は各アプリのメニューで変更できます。
 	Uninstall command-line tool…	コマンドラインツールをアンインストール…
 	Uninstall command-line tool?	コマンドラインツールをアンインストールしますか？
 	Only the command-line tool will be removed. Your documents and settings stay.	コマンドラインツールのみが削除されます。ドキュメントと設定は保持されます。

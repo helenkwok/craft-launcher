@@ -471,7 +471,7 @@ impl LauncherUi {
         let options = BackendOptions {
             kinds: self.settings.preferred_kinds.clone(),
             prereleases: self.settings.prereleases,
-            cli_apps: self.settings.cli_apps.clone(),
+            cli_apps: self.entries.iter().filter(|entry| self.settings.cli_enabled(entry.app.id)).map(|entry| entry.app.id.to_string()).collect(),
             versions: self.settings.versions.clone(),
             launcher_version: self.settings.launcher_version.clone(),
             install_locations: self.settings.install_locations.clone(),
@@ -551,6 +551,7 @@ impl LauncherUi {
             changed |= self.handle(event);
         }
         if changed {
+            self.configure();
             self.announce_updates(host);
             if self.settings.auto_update {
                 self.trigger_auto_updates();
@@ -1217,6 +1218,18 @@ mod tests {
         );
         assert!(ui.entry(id).unwrap().detected);
         assert_eq!(sent.borrow().as_slice(), &[Command::Detect]);
+    }
+
+    #[test]
+    fn global_cli_default_includes_apps_added_by_catalog_refresh() {
+        let (mut ui, sent, _) = launcher();
+        ui.settings.cli_default = true;
+        let added = ui.entries.pop().expect("catalog app").app.id;
+        ui.configure();
+        assert!(matches!(sent.borrow().last(), Some(Command::Configure(options)) if !options.cli_apps.contains(added)));
+        assert!(ui.handle(Event::CatalogUpdated));
+        ui.configure();
+        assert!(matches!(sent.borrow().last(), Some(Command::Configure(options)) if options.cli_apps.contains(added)));
     }
 
     /// A CJK preference is drawable only while that language's own face is installed: having the

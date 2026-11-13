@@ -450,7 +450,8 @@ anicraft	Classic tweens with eight easing presets and custom ease curves, plus s
 	Unlock	Déverrouiller
 	Install command-line tool and keep it up to date	Installer l’outil en ligne de commande et le garder à jour
 	Install or repair command-line tool	Installer ou réparer l’outil en ligne de commande
-	Choose command-line tools in each app's menu. Enabled tools are kept up to date with their apps.	Choisissez les outils en ligne de commande dans le menu de chaque application. Les outils activés sont mis à jour avec leurs applications.
+	Install command-line tools alongside apps by default	Installer par défaut les outils en ligne de commande avec les applications
+	Available tools are installed on the next app install or update. Change individual apps in their menus.	Les outils disponibles seront installés lors de la prochaine installation ou mise à jour de l’application. Modifiez les choix individuels dans le menu de chaque application.
 	Uninstall command-line tool…	Désinstaller l’outil en ligne de commande…
 	Uninstall command-line tool?	Désinstaller l’outil en ligne de commande ?
 	Only the command-line tool will be removed. Your documents and settings stay.	Seul l’outil en ligne de commande sera supprimé. Vos documents et réglages sont conservés.

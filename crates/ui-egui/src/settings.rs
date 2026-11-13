@@ -112,6 +112,10 @@ pub struct Settings {
     /// macOS: apps whose separate command-line tools are installed and updated with them.
     #[serde(default)]
     pub cli_apps: std::collections::BTreeSet<String>,
+    /// macOS: install available command-line tools with apps unless individually excluded.
+    pub cli_default: bool,
+    /// Apps explicitly opted out of the global CLI default, including after CLI removal.
+    pub cli_excluded: std::collections::BTreeSet<String>,
     /// Show a system notification when an installed app has an update.
     pub notify: bool,
     pub prereleases: bool,
@@ -144,6 +148,22 @@ pub struct Settings {
 impl Settings {
     /// Machine-readable code for "follow the system language".
     pub const LANGUAGE_AUTO: &str = "auto";
+
+    /// Resolve an app's choice against the global default; explicit opt-outs take precedence.
+    pub fn cli_enabled(&self, id: &str) -> bool {
+        !self.cli_excluded.contains(id) && (self.cli_default || self.cli_apps.contains(id))
+    }
+
+    /// Save an explicit app choice, independent of later changes to the global default.
+    pub fn set_cli_enabled(&mut self, id: &str, enabled: bool) {
+        if enabled {
+            self.cli_excluded.remove(id);
+            self.cli_apps.insert(id.to_string());
+        } else {
+            self.cli_apps.remove(id);
+            self.cli_excluded.insert(id.to_string());
+        }
+    }
 
     /// Clear saved catalog filters whose controls were removed from the toolbar.
     pub fn migrate(&mut self) {
@@ -262,6 +282,8 @@ impl Default for Settings {
             auto_update: false,
             batch_updates: false,
             cli_apps: Default::default(),
+            cli_default: false,
+            cli_excluded: Default::default(),
             notify: true,
             prereleases: false,
             versions: BTreeMap::new(),
@@ -283,6 +305,27 @@ impl Default for Settings {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn cli_default_preserves_explicit_choices_and_round_trips() {
+        let mut settings: Settings = serde_json::from_str(r#"{"cli_apps":["lightcraft"]}"#).expect("existing settings");
+        assert!(!settings.cli_default);
+        assert!(settings.cli_enabled("lightcraft"));
+        assert!(!settings.cli_enabled("photocraft"));
+        settings.set_cli_enabled("photocraft", false);
+        settings.cli_default = true;
+        assert!(!settings.cli_enabled("photocraft"));
+        assert!(settings.cli_enabled("future-catalog-app"));
+        settings.set_cli_enabled("photocraft", true);
+        assert!(settings.cli_enabled("photocraft"));
+        settings.set_cli_enabled("lightcraft", false);
+        let restored: Settings = serde_json::from_str(&serde_json::to_string(&settings).expect("serialize")).expect("deserialize");
+        assert_eq!(restored, settings);
+        assert!(!restored.cli_enabled("lightcraft"));
+        settings.cli_default = false;
+        assert!(settings.cli_enabled("photocraft"));
+        assert!(!settings.cli_enabled("future-catalog-app"));
+    }
 
     #[test]
     fn pin_appends_once_and_unpin_removes() {

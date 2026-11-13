@@ -452,7 +452,8 @@ anicraft	Classic tweens with eight easing presets and custom ease curves, plus s
 	Unlock	Entsperren
 	Install command-line tool and keep it up to date	Befehlszeilenprogramm installieren und aktuell halten
 	Install or repair command-line tool	Befehlszeilenprogramm installieren oder reparieren
-	Choose command-line tools in each app's menu. Enabled tools are kept up to date with their apps.	Wähle die Befehlszeilenprogramme im Menü der jeweiligen App aus. Aktivierte Programme werden zusammen mit ihren Apps aktualisiert.
+	Install command-line tools alongside apps by default	Befehlszeilenprogramme standardmäßig zusammen mit Apps installieren
+	Available tools are installed on the next app install or update. Change individual apps in their menus.	Verfügbare Programme werden bei der nächsten Installation oder Aktualisierung der App installiert. Einzelne Apps lassen sich in ihren Menüs einstellen.
 	Uninstall command-line tool…	Befehlszeilenprogramm deinstallieren…
 	Uninstall command-line tool?	Befehlszeilenprogramm deinstallieren?
 	Only the command-line tool will be removed. Your documents and settings stay.	Nur das Befehlszeilenprogramm wird entfernt. Deine Dokumente und Einstellungen bleiben erhalten.

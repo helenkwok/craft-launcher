@@ -451,7 +451,8 @@ anicraft	Classic tweens with eight easing presets and custom ease curves, plus s
 	Unlock	განბლოკვა
 	Install command-line tool and keep it up to date	ბრძანების ხაზის ხელსაწყოს დაყენება და განახლება
 	Install or repair command-line tool	ბრძანების ხაზის ხელსაწყოს დაყენება ან შეკეთება
-	Choose command-line tools in each app's menu. Enabled tools are kept up to date with their apps.	აირჩიეთ ბრძანების ხაზის ხელსაწყოები თითოეული აპლიკაციის მენიუში. ჩართული ხელსაწყოები აპლიკაციებთან ერთად განახლდება.
+	Install command-line tools alongside apps by default	ნაგულისხმევად ბრძანების ხაზის ხელსაწყოების აპლიკაციებთან ერთად დაყენება
+	Available tools are installed on the next app install or update. Change individual apps in their menus.	ხელმისაწვდომი ხელსაწყოები აპლიკაციის შემდეგი დაყენების ან განახლებისას დაყენდება. ცალკეული აპლიკაციების არჩევანი მათ მენიუებში შეცვალეთ.
 	Uninstall command-line tool…	ბრძანების ხაზის ხელსაწყოს წაშლა…
 	Uninstall command-line tool?	წაიშალოს ბრძანების ხაზის ხელსაწყო?
 	Only the command-line tool will be removed. Your documents and settings stay.	წაიშლება მხოლოდ ბრძანების ხაზის ხელსაწყო. თქვენი დოკუმენტები და პარამეტრები შენარჩუნდება.

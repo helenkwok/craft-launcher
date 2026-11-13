@@ -453,7 +453,8 @@ anicraft	Classic tweens with eight easing presets and custom ease curves, plus s
 	Unlock	Feloldás
 	Install command-line tool and keep it up to date	Parancssori eszköz telepítése és naprakészen tartása
 	Install or repair command-line tool	Parancssori eszköz telepítése vagy javítása
-	Choose command-line tools in each app's menu. Enabled tools are kept up to date with their apps.	A parancssori eszközök az egyes alkalmazások menüjében választhatók ki. Az engedélyezett eszközök az alkalmazásokkal együtt frissülnek.
+	Install command-line tools alongside apps by default	Parancssori eszközök telepítése az alkalmazásokkal együtt alapértelmezés szerint
+	Available tools are installed on the next app install or update. Change individual apps in their menus.	Az elérhető eszközök az alkalmazás következő telepítésekor vagy frissítésekor települnek. Az egyes alkalmazások beállítását a saját menüjükben módosíthatja.
 	Uninstall command-line tool…	Parancssori eszköz eltávolítása…
 	Uninstall command-line tool?	Eltávolítja a parancssori eszközt?
 	Only the command-line tool will be removed. Your documents and settings stay.	Csak a parancssori eszköz lesz eltávolítva. A dokumentumok és a beállítások megmaradnak.
