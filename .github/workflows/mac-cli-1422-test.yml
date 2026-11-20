@@ -1,0 +1,41 @@
+name: macOS CLI tool test
+
+# Runs the reviewer's targeted test for storytold/craft-launcher#1422 on a macOS runner, then the whole native crate.
+# Lives only on the fork branch mac-cli-1422-test (PR head plus this file); it is not part of the pull request.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [mac-cli-1422-test]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mac-cli-1422-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos:
+    name: Targeted test and native crate on macOS
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # master
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          key: mac-cli-1422
+      - name: Head under test
+        run: |
+          git log --oneline -3
+          uname -sm
+          rustc --version
+      - name: The reviewer's targeted test
+        run: cargo test --locked -p artcraft-launcher-native install::cli_tool -- --test-threads=1 --nocapture
+      - name: The whole native crate
+        run: cargo test --locked -p artcraft-launcher-native
